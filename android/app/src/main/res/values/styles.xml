@@ -1,0 +1,18 @@
+<resources>
+    <color name="splashColor">#D24ED355</color>
+
+    <style name="LaunchTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <style name="NormalTheme" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/splashColor</item>
+        <item name="colorPrimary">#FF018786</item>
+        <item name="colorOnPrimary">#000000</item>
+        <item name="colorPrimaryContainer">#E0F2F1</item>
+        <item name="colorOnPrimaryContainer">#001F1D</item>
+    </style>
+</resources>

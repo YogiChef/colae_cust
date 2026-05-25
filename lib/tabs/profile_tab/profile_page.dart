@@ -1,0 +1,410 @@
+// ignore_for_file: use_build_context_synchronously, avoid_print
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:colae_cut/providers/cart_provider.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:colae_cut/auth/address/address_book.dart';
+import 'package:colae_cut/auth/login_page.dart';
+import 'package:colae_cut/tabs/cart_tab/cart_page.dart';
+import 'package:colae_cut/pages/order_tab/order_page.dart';
+import 'package:colae_cut/services/sevice.dart';
+import 'package:colae_cut/widgets/dialog.dart';
+import 'package:colae_cut/pages/minor_page/referral_dashboard_page.dart';
+import 'package:provider/provider.dart';
+
+class ProfilePage extends StatefulWidget {
+  final bool isParentLoading;
+
+  const ProfilePage({super.key, this.isParentLoading = false});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  Future<DocumentSnapshot>? _userFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (auth.currentUser != null) {
+      _userFuture = firestore
+          .collection('buyers')
+          .doc(auth.currentUser!.uid)
+          .get();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isParentLoading) {
+      return const SizedBox.shrink();
+    }
+
+    return auth.currentUser == null
+        ? Scaffold(
+            body: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        height: MediaQuery.of(context).size.height * 0.33.dg,
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(20, 80, 20, 40),
+                        decoration: const BoxDecoration(
+                          image: DecorationImage(
+                            image: AssetImage('images/profile.jpg'),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: Colors.white,
+                              radius: 50.dg,
+                              child: Icon(
+                                Icons.person,
+                                size: 80.dg,
+                                color: Colors.yellow.shade900,
+                              ),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.only(left: 10.w),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width:
+                                        MediaQuery.of(context).size.width *
+                                        0.5.dg,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.purple,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            5,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const LoginPage(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Login Account',
+                                        style: styles(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Positioned(
+                        top: 30.h,
+                        right: 20.w,
+                        child: Icon(
+                          CupertinoIcons.moon,
+                          color: Colors.yellow.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                  firstBlock(
+                    onPress: () {},
+                    icon: Icons.settings,
+                    text: 'ตั้งค่า',
+                  ),
+                  firstBlock(onPress: () {}, icon: Icons.phone, text: 'Phone'),
+                  firstBlock(
+                    onPress: () {},
+                    icon: Icons.shopping_cart,
+                    text: 'ตะกร้า',
+                  ),
+                  firstBlock(
+                    onPress: () {},
+                    icon: Icons.description,
+                    text: 'ออเดอร์',
+                  ),
+                  firstBlock(
+                    onPress: () {
+                      MyAlertDialog.showMyDialog(
+                        contant: 'Are you sure to log out ',
+                        context: context,
+                        img: const AssetImage('images/signout.png'),
+                        tabNo: () {
+                          Navigator.pop(context);
+                        },
+                        tabYes: () async {
+                          await auth.signOut().whenComplete(
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginPage(),
+                              ),
+                            ),
+                          );
+
+                          await Future.delayed(
+                            const Duration(microseconds: 100),
+                          );
+                        },
+                        title: 'ออกจากระบบ',
+                      );
+                    },
+                    icon: Icons.logout,
+                    text: 'ออกจากระบบ',
+                  ),
+                ],
+              ),
+            ),
+          )
+        : FutureBuilder<DocumentSnapshot>(
+            future: _userFuture,
+            builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
+              if (snapshot.hasError) {
+                return const Text("Something went wrong");
+              }
+
+              if (snapshot.hasData && !snapshot.data!.exists) {
+                return const Text("Document does not exist");
+              }
+
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: SizedBox.shrink());
+              }
+
+              if (snapshot.connectionState == ConnectionState.done) {
+                Map<String, dynamic> data =
+                    snapshot.data!.data() as Map<String, dynamic>;
+                return Scaffold(
+                  body: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        Stack(
+                          children: [
+                            Container(
+                              height: height * 0.33.h,
+                              width: double.infinity,
+                              padding: EdgeInsets.fromLTRB(
+                                20.w,
+                                80.h,
+                                20.w,
+                                40.h,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.only(
+                                  bottomLeft: Radius.circular(20.r),
+                                  bottomRight: Radius.circular(20.r),
+                                ),
+                                image: DecorationImage(
+                                  image: NetworkImage(data['custcoverImage']),
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  CircleAvatar(
+                                    radius: 50.dg,
+                                    backgroundImage: NetworkImage(
+                                      data['profileImage'],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(
+                                        left: 4.w,
+                                        top: 4.h,
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            data['fullName'],
+                                            textAlign: TextAlign.start,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: styles(fontSize: 16.sp),
+                                          ),
+                                          Text(
+                                            data['custemail'],
+                                            textAlign: TextAlign.start,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: styles(fontSize: 14.sp),
+                                          ),
+                                          SizedBox(
+                                            height: 40.h,
+                                            width: width * .6,
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: mainColor,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const AddressBook(),
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                'แก้ไขที่อยู่',
+                                                style: styles(
+                                                  fontSize: 14.sp,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 20.h),
+                        firstBlock(
+                          onPress: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ReferralDashboardPage(),
+                              ),
+                            );
+                          },
+                          icon: Icons.card_giftcard,
+                          text: 'ธุรกิจ',
+                          subtitle: 'รายได้ Referral',
+                        ),
+                        firstBlock(
+                          onPress: () {
+                            callVendor(data['custphone']);
+                          },
+                          icon: Icons.phone,
+                          text: 'โทรศัพท์',
+                          subtitle: data['custphone'],
+                        ),
+                        firstBlock(
+                          onPress: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CartPage(),
+                              ),
+                            );
+                          },
+                          icon: Icons.shopping_cart,
+                          text: 'ตะกร้า',
+                        ),
+                        firstBlock(
+                          onPress: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const OrderPage(),
+                              ),
+                            );
+                          },
+                          icon: Icons.description,
+                          text: 'ออเดอร์',
+                        ),
+                        firstBlock(
+                          onPress: () {
+                            MyAlertDialog.showMyDialog(
+                              contant: 'Are you sure to signout ',
+                              context: context,
+                              img: const AssetImage('images/signout.png'),
+                              tabNo: () {
+                                Navigator.pop(context);
+                              },
+                              tabYes: () async {
+                                final cartProvider = Provider.of<CartProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                                cartProvider
+                                    .removeAllItem(); // หรือ cartProvider.clearCart() ถ้ามี method นี้
+
+                                await auth.signOut().whenComplete(
+                                  () => Navigator.pushReplacement(
+                                    // ใช้ pushReplacement เพื่อ replace route (ไม่ stack)
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => const LoginPage(),
+                                    ),
+                                  ),
+                                );
+
+                                await Future.delayed(
+                                  const Duration(milliseconds: 100),
+                                ); // FIXED: milliseconds แทน microseconds (100us = 0ms)
+                              },
+                              title: 'Log Out',
+                            );
+                          },
+                          icon: Icons.logout,
+                          text: 'ออกจากระบบ',
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Center(
+                child: CircularProgressIndicator(color: Colors.yellow.shade900),
+              );
+            },
+          );
+  }
+
+  Padding firstBlock({
+    required IconData icon,
+    required String text,
+    String subtitle = '',
+    required VoidCallback onPress,
+  }) {
+    return Padding(
+      padding: EdgeInsets.only(left: 20.w),
+      child: ListTile(
+        onTap: onPress,
+        leading: Icon(icon),
+        title: Text(
+          text,
+          style: styles(fontSize: 20.sp, color: Colors.grey),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: styles(fontSize: 16.sp, color: Colors.grey),
+        ),
+      ),
+    );
+  }
+}
