@@ -5,6 +5,7 @@ import 'package:colae_cut/pages/minor_page/chat_page.dart';
 import 'package:colae_cut/pages/minor_page/customer_rider_chat_page.dart';
 import 'package:colae_cut/services/sevice.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
@@ -57,6 +58,7 @@ class _OrderingState extends State<Ordering> {
               'self_delivering',
               'rider_accepted',
               'picked_up',
+              'shipped',
             ],
           )
           .orderBy('timestamp', descending: true)
@@ -684,6 +686,42 @@ class _OrderingState extends State<Ordering> {
     }
   }
 
+  Future<void> _confirmReceived(String orderId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('ยืนยันได้รับของ'),
+        content: const Text(
+          'ยืนยันว่าได้รับของและตรวจสอบสินค้าเรียบร้อยแล้ว?\nหลังยืนยันจะไม่สามารถแก้ไขได้',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('ยกเลิก'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('ยืนยัน', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    EasyLoading.show(status: 'กำลังบันทึก...');
+    try {
+      await firestore.collection('orders').doc(orderId).update({
+        'status': 'delivered',
+        'confirmedByBuyer': true,
+        'deliveredAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      EasyLoading.showSuccess('ยืนยันแล้ว ขอบคุณค่ะ');
+    } catch (e) {
+      EasyLoading.showError('เกิดข้อผิดพลาด: $e');
+    }
+  }
+
   Widget _buildUnreadBadge(int unreadCount) {
     if (unreadCount == 0) return const SizedBox.shrink();
     return Positioned(
@@ -715,6 +753,7 @@ class _OrderingState extends State<Ordering> {
 
     final Timestamp timestamp = orderData['timestamp'] ?? Timestamp.now();
     final String serviceType = orderData['serviceType'] ?? 'pickup';
+    final String orderType = orderData['orderType'] as String? ?? serviceType;
     final String vendorId =
         orderData['vendorId']?.toString() ??
         (items.isNotEmpty ? items.first['vendorId']?.toString() ?? '' : '');
@@ -755,6 +794,18 @@ class _OrderingState extends State<Ordering> {
       case 'self_delivering':
         statusText = 'ร้านส่งเอง';
         statusColor = Colors.teal;
+        break;
+      case 'rider_accepted':
+        statusText = 'Rider รับงาน';
+        statusColor = Colors.green;
+        break;
+      case 'picked_up':
+        statusText = 'Rider รับอาหารแล้ว';
+        statusColor = Colors.green.shade700;
+        break;
+      case 'shipped':
+        statusText = 'จัดส่งแล้ว';
+        statusColor = Colors.blue;
         break;
       default:
         statusText = '';
@@ -868,6 +919,85 @@ class _OrderingState extends State<Ordering> {
       ),
     );
 
+    if (orderType == 'ecommerce' && status == 'shipped') {
+      final String trackingNumber =
+          orderData['trackingNumber'] as String? ?? '';
+      final String shippingCarrier =
+          orderData['shippingCarrier'] as String? ?? '';
+      expansionChildren.add(
+        Container(
+          padding: EdgeInsets.all(16.w),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50,
+            border: Border(top: BorderSide(color: Colors.blue.shade200)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.local_shipping,
+                    color: Colors.blue[800],
+                    size: 18.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'ร้านส่งของแล้ว',
+                    style: styles(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue.shade900,
+                    ),
+                  ),
+                ],
+              ),
+              if (trackingNumber.isNotEmpty) ...[
+                SizedBox(height: 6.h),
+                Text(
+                  'ขนส่ง: ${shippingCarrier.isNotEmpty ? shippingCarrier : '-'}',
+                  style: styles(fontSize: 12.sp, color: Colors.blue.shade800),
+                ),
+                Text(
+                  'พัสดุ: $trackingNumber',
+                  style: styles(
+                    fontSize: 12.sp,
+                    color: Colors.blue.shade800,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              SizedBox(height: 4.h),
+              Text(
+                'กรุณาตรวจสอบสินค้าก่อนกดยืนยัน',
+                style: styles(fontSize: 11.sp, color: Colors.grey.shade700),
+              ),
+              SizedBox(height: 12.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.check_circle, color: Colors.white),
+                  label: Text(
+                    'ได้รับของแล้ว',
+                    style: styles(
+                      color: Colors.white,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(vertical: 14.h),
+                  ),
+                  onPressed: () => _confirmReceived(document.id),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: _getChatStream(vendorId, document.id),
       builder: (context, chatSnapshot) {
@@ -920,7 +1050,8 @@ class _OrderingState extends State<Ordering> {
           backgroundColor: Colors.grey.shade100,
           collapsedIconColor: Colors.transparent,
           iconColor: Colors.transparent,
-          tilePadding: EdgeInsets.only(left: 20.w),
+          tilePadding: EdgeInsets.only(left: 12.w, right: 12),
+          showTrailingIcon: false,
           collapsedBackgroundColor: Colors.white,
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

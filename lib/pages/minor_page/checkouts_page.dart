@@ -453,13 +453,27 @@ class _CheckOutPageState extends State<CheckOutPage> {
                     ),
                     child: Row(
                       children: [
-                        Text(
-                          'Total: ฿${globalTotal.toStringAsFixed(2)}',
-                          style: styles(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.red,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Total: ฿${(globalTotal + _cartProvider.ecommerceShippingTotal).toStringAsFixed(2)}',
+                              style: styles(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.red,
+                              ),
+                            ),
+                            if (_cartProvider.serviceType == 'ecommerce')
+                              Text(
+                                'ค่าส่ง: ฿${_cartProvider.ecommerceShippingTotal.toStringAsFixed(0)}',
+                                style: styles(
+                                  fontSize: 12.sp,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                          ],
                         ),
                         const Spacer(),
                         SizedBox(

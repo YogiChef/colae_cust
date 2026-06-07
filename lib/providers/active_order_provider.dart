@@ -61,6 +61,16 @@ class ActiveOrderProvider extends ChangeNotifier {
     });
   }
 
+  void clear() {
+    _subscription?.cancel();
+    _subscription = null;
+    hasActiveDeliveryOrder = false;
+    activeOrderId = null;
+    riderId = null;
+    riderName = 'ไรเดอร์';
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();

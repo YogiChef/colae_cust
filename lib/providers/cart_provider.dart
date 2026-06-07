@@ -1,4 +1,4 @@
-﻿// ignore_for_file: deprecated_member_use, unused_element, avoid_print
+﻿// ignore_for_file: deprecated_member_use, unused_element, avoid_print, avoid_types_as_parameter_names
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/models/cart_attributes.dart';
@@ -42,7 +42,10 @@ class CartProvider with ChangeNotifier {
   bool get isShippingCacheEmpty => _shippingCache.isEmpty;
 
   void setServiceType(String type) {
-    if (type == 'delivery' || type == 'pickup' || type == 'dine-in') {
+    if (type == 'delivery' ||
+        type == 'pickup' ||
+        type == 'dine-in' ||
+        type == 'ecommerce') {
       if (_serviceType != type) {
         _serviceType = type;
         if (type != 'dine-in') {
@@ -51,6 +54,51 @@ class CartProvider with ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  /// คำนวณค่าส่ง ecommerce จาก shippingTiers ของ item หนึ่งชิ้น
+  double _calcItemEcommerceShipping(CartAttr item) {
+    final tiers = item.shippingTiers;
+    final qty = item.quantity;
+    if (tiers.isEmpty) return 0;
+    double fee = 0;
+    bool found = false;
+    for (final tier in tiers) {
+      final t = Map<String, dynamic>.from(tier as Map);
+      final from = (t['qtyFrom'] as num?)?.toInt() ?? 1;
+      final to = (t['qtyTo'] as num?)?.toInt() ?? 9999;
+      if (qty >= from && qty <= to) {
+        fee = (t['fee'] as num?)?.toDouble() ?? 0;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      final lastTier = Map<String, dynamic>.from(tiers.last as Map);
+      final lastTo = (lastTier['qtyTo'] as num?)?.toInt() ?? 9999;
+      final lastFee = (lastTier['fee'] as num?)?.toDouble() ?? 0;
+      final extraUnits = qty - lastTo;
+      fee =
+          lastFee +
+          item.shippingExtraBase +
+          (extraUnits * item.shippingExtraPerUnit);
+    }
+    return fee;
+  }
+
+  double get ecommerceShippingTotal {
+    if (_serviceType != 'ecommerce') return 0;
+    return _cartItems.values.fold(
+      0.0,
+      (sum, item) => sum + _calcItemEcommerceShipping(item),
+    );
+  }
+
+  double ecommerceShippingForVendor(String vendorId) {
+    if (_serviceType != 'ecommerce') return 0;
+    return _cartItems.values
+        .where((item) => item.vendorId == vendorId)
+        .fold(0.0, (sum, item) => sum + _calcItemEcommerceShipping(item));
   }
 
   void setTableId(String tableId) {
@@ -447,6 +495,8 @@ class CartProvider with ChangeNotifier {
       }
       final shipping = await deliveryShippingByVendor(vendorId);
       return subtotal + shipping;
+    } else if (_serviceType == 'ecommerce') {
+      return subtotal + ecommerceShippingForVendor(vendorId);
     } else {
       return subtotal;
     }
@@ -500,14 +550,19 @@ class CartProvider with ChangeNotifier {
     String vendorId,
     String productSize,
     dynamic date,
-    List<Map<String, dynamic>> selectedOptions,
-  ) async {
+    List<Map<String, dynamic>> selectedOptions, {
+    List<dynamic> shippingTiers = const [],
+    double shippingExtraBase = 0.0,
+    double shippingExtraPerUnit = 0.0,
+  }) async {
     final vendorData = await _getVendorData(vendorId);
     if (vendorData == null) throw Exception('Vendor not found: $vendorId');
-    final vendor = VendorModel.fromJson(vendorData);
-    final isOpen = DeliService.isStoreOpenNow(vendor.storeHours);
-    if (!isOpen) throw Exception('ร้านปิดชั่วคราว – ไม่สามารถเพิ่มสินค้าได้');
-    await loadDeliveryConfig(vendor.city);
+    if (_serviceType != 'ecommerce') {
+      final vendor = VendorModel.fromJson(vendorData);
+      final isOpen = DeliService.isStoreOpenNow(vendor.storeHours);
+      if (!isOpen) throw Exception('ร้านปิดชั่วคราว – ไม่สามารถเพิ่มสินค้าได้');
+      await loadDeliveryConfig(vendor.city);
+    }
 
     final extraPrice = calculateExtraPrice(selectedOptions);
     final String key = _getCompositeKey(proId, selectedOptions);
@@ -531,6 +586,9 @@ class CartProvider with ChangeNotifier {
           scheduleDate: date,
           selectedOptions: selectedOptions,
           extraPrice: extraPrice,
+          shippingTiers: shippingTiers,
+          shippingExtraBase: shippingExtraBase,
+          shippingExtraPerUnit: shippingExtraPerUnit,
         ),
       );
     }

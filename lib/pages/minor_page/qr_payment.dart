@@ -239,11 +239,16 @@ class _QrPaymentPageState extends State<QrPaymentPage>
       final String vendorId =
           selectedVendorId ?? cartProvider.groupedItems.keys.first;
       final double foodSubtotal = cartProvider.subTotalByVendor(vendorId);
-      final double customerShip = cartProvider.serviceType == 'delivery'
-          ? (cartProvider.isMultiVendor
-                ? cartProvider.getCustomerShippingForVendor(vendorId)
-                : await cartProvider.customerShippingByVendor(vendorId))
-          : 0.0;
+      final double customerShip;
+      if (cartProvider.serviceType == 'delivery') {
+        customerShip = cartProvider.isMultiVendor
+            ? cartProvider.getCustomerShippingForVendor(vendorId)
+            : await cartProvider.customerShippingByVendor(vendorId);
+      } else if (cartProvider.serviceType == 'ecommerce') {
+        customerShip = cartProvider.ecommerceShippingForVendor(vendorId);
+      } else {
+        customerShip = 0.0;
+      }
       final double vendorTotal = foodSubtotal + customerShip;
       final List<CartAttr> vendorItems =
           cartProvider.groupedItems[vendorId] ?? [];
@@ -316,7 +321,7 @@ class _QrPaymentPageState extends State<QrPaymentPage>
           if (mounted) _currentPosition = pos;
         } catch (e) {}
       }
-      if (_currentPosition == null) {
+      if (_currentPosition == null && cartProvider.serviceType != 'ecommerce') {
         setState(() => isProcessing = false);
         if (mounted) {
           showDialog(
@@ -353,6 +358,7 @@ class _QrPaymentPageState extends State<QrPaymentPage>
                 1000
           : 0.0;
       final bool isDelivery = cartProvider.serviceType == 'delivery';
+      final bool isEcommerce = cartProvider.serviceType == 'ecommerce';
       final double customerShipping;
       final double riderEarnings;
       if (isDelivery) {
@@ -372,10 +378,26 @@ class _QrPaymentPageState extends State<QrPaymentPage>
           );
           riderEarnings = CartProvider.calcRiderEarnings(foodTotal, distanceKm);
         }
+      } else if (isEcommerce) {
+        customerShipping = cartProvider.ecommerceShippingForVendor(vendorId);
+        riderEarnings = 0.0;
       } else {
         customerShipping = 0.0;
         riderEarnings = 0.0;
       }
+
+      // คำนวณระยะ vendor ↔ customer (เฉพาะ ecommerce, บันทึกทุกค่า)
+      double? orderDistance;
+      if (isEcommerce && vendorLocation != null && _currentPosition != null) {
+        if (vendorLocation.latitude != 0 && _currentPosition!.latitude != 0) {
+          final dist = Geolocator.distanceBetween(
+            vendorLocation.latitude, vendorLocation.longitude,
+            _currentPosition!.latitude, _currentPosition!.longitude,
+          ) / 1000.0;
+          orderDistance = double.parse(dist.toStringAsFixed(1));
+        }
+      }
+
       final double platformCommission = isDelivery
           ? CartProvider.calcPlatformCommission(foodTotal)
           : 0.0;
@@ -391,9 +413,11 @@ class _QrPaymentPageState extends State<QrPaymentPage>
         'orderId': orderId,
         'buyerId': buyerId,
         'serviceType': cartProvider.serviceType,
+        'orderType': isEcommerce ? 'ecommerce' : (isDelivery ? 'delivery' : 'pickup'),
         'paymentMethod': method,
         'totalPrice': foodTotal + customerShipping,
         'shippingCharge': customerShipping,
+        'shippingFee': isEcommerce ? customerShipping : 0,
         'riderEarnings': riderEarnings,
         'isMultiVendor': cartProvider.isMultiVendor,
         'platformCommission': platformCommission,
@@ -405,10 +429,9 @@ class _QrPaymentPageState extends State<QrPaymentPage>
         'slipChatId': null,
         'timestamp': FieldValue.serverTimestamp(),
         'askme': false,
-        'customerLocation': GeoPoint(
-          _currentPosition!.latitude,
-          _currentPosition!.longitude,
-        ),
+        'customerLocation': _currentPosition != null
+            ? GeoPoint(_currentPosition!.latitude, _currentPosition!.longitude)
+            : const GeoPoint(0, 0),
         'multiVendorGroupId': _multiVendorGroupId,
         'vendorInfo': {
           'bussinessName':
@@ -433,6 +456,20 @@ class _QrPaymentPageState extends State<QrPaymentPage>
       };
       if (cartProvider.isDineIn && cartProvider.tableId != null) {
         orderDataTemplate['tableId'] = cartProvider.tableId;
+      }
+      if (orderDistance != null) {
+        orderDataTemplate['orderDistance'] = orderDistance;
+      }
+      if (isEcommerce) {
+        orderDataTemplate['shippingAddress'] = {
+          'name': userData['fullName'] ?? '',
+          'phone': userData['phone'] ?? '',
+          'address': userData['address'] ?? '',
+          'city': userData['city'] ?? '',
+          'state': userData['state'] ?? '',
+          'country': userData['country'] ?? '',
+          'zipcode': userData['zipcode'] ?? '',
+        };
       }
 
       final bool setSuccess = await _setOrderWithRetry(
@@ -889,6 +926,9 @@ class _QrPaymentPageState extends State<QrPaymentPage>
                                           final bool isDeliveryQr =
                                               cartProvider.serviceType ==
                                               'delivery';
+                                          final bool isEcommerceQr =
+                                              cartProvider.serviceType ==
+                                              'ecommerce';
                                           final double customerShipping;
                                           final double riderEarnings;
                                           if (isDeliveryQr) {
@@ -913,6 +953,12 @@ class _QrPaymentPageState extends State<QrPaymentPage>
                                                     distanceKm,
                                                   );
                                             }
+                                          } else if (isEcommerceQr) {
+                                            customerShipping = cartProvider
+                                                .ecommerceShippingForVendor(
+                                                  vendorId,
+                                                );
+                                            riderEarnings = 0.0;
                                           } else {
                                             customerShipping = 0.0;
                                             riderEarnings = 0.0;
@@ -936,10 +982,18 @@ class _QrPaymentPageState extends State<QrPaymentPage>
                                             'buyerId': user.uid,
                                             'serviceType':
                                                 cartProvider.serviceType,
+                                            'orderType': isEcommerceQr
+                                                ? 'ecommerce'
+                                                : (isDeliveryQr
+                                                      ? 'delivery'
+                                                      : 'pickup'),
                                             'paymentMethod': 'qr',
                                             'totalPrice':
                                                 foodTotal + customerShipping,
                                             'shippingCharge': customerShipping,
+                                            'shippingFee': isEcommerceQr
+                                                ? customerShipping
+                                                : 0,
                                             'riderEarnings': riderEarnings,
                                             'isMultiVendor':
                                                 cartProvider.isMultiVendor,
@@ -1013,6 +1067,25 @@ class _QrPaymentPageState extends State<QrPaymentPage>
                                               cartProvider.tableId != null) {
                                             orderData['tableId'] =
                                                 cartProvider.tableId;
+                                          }
+                                          if (isEcommerceQr &&
+                                              vendorLocation.latitude != 0 &&
+                                              distanceKm > 0) {
+                                            orderData['orderDistance'] =
+                                                double.parse(
+                                                  distanceKm.toStringAsFixed(1),
+                                                );
+                                          }
+                                          if (isEcommerceQr) {
+                                            orderData['shippingAddress'] = {
+                                              'name': userData['fullName'] ?? '',
+                                              'phone': userData['phone'] ?? '',
+                                              'address': userData['address'] ?? '',
+                                              'city': userData['city'] ?? '',
+                                              'state': userData['state'] ?? '',
+                                              'country': userData['country'] ?? '',
+                                              'zipcode': userData['zipcode'] ?? '',
+                                            };
                                           }
 
                                           EasyLoading.show(
@@ -2082,13 +2155,24 @@ class _QrPaymentPageState extends State<QrPaymentPage>
               ],
               Row(
                 children: [
-                  Text(
-                    'Total: ฿${globalTotal.toStringAsFixed(2)}',
-                    style: styles(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.red,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Total: ฿${globalTotal.toStringAsFixed(2)}',
+                        style: styles(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.red,
+                        ),
+                      ),
+                      if (cartProvider.serviceType == 'ecommerce')
+                        Text(
+                          'รวมค่าส่ง ฿${cartProvider.ecommerceShippingTotal.toStringAsFixed(0)}',
+                          style: styles(fontSize: 11.sp, color: Colors.blue.shade700),
+                        ),
+                    ],
                   ),
                   Spacer(),
                   if (showCashButton)

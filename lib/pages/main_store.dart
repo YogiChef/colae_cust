@@ -252,7 +252,7 @@ class _MainStorePageState extends State<MainStorePage> {
                   color: Colors.white,
                   elevation: 1,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(6.r),
+                    borderRadius: BorderRadius.circular(4.r),
                   ),
                   child: SizedBox(
                     height: 190.w,
@@ -264,7 +264,7 @@ class _MainStorePageState extends State<MainStorePage> {
                           height: 170.w,
                           width: 170.w,
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6.r),
+                            borderRadius: BorderRadius.circular(4.r),
                             child: CachedNetworkImage(
                               imageUrl: storeData['image'],
                               fit: BoxFit.cover,
@@ -291,9 +291,10 @@ class _MainStorePageState extends State<MainStorePage> {
                                     storeData['bussinessName'],
                                     overflow: TextOverflow.ellipsis,
                                     style: styles(
-                                      fontSize: 16.sp,
+                                      fontSize: 15.sp,
                                       height: 1,
-                                      color: Colors.black54,
+                                      color: Colors.deepPurple[900],
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ),
@@ -372,7 +373,7 @@ class _MainStorePageState extends State<MainStorePage> {
                                   child: Text(
                                     formattedHours,
                                     style: styles(
-                                      fontSize: 12.sp,
+                                      fontSize: 11.sp,
                                       color: Colors.yellow.shade900,
                                       fontWeight: FontWeight.w400,
                                     ),

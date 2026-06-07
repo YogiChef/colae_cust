@@ -312,7 +312,10 @@ class _OrderedState extends State<Ordered> {
     required double shippingCharge,
     required String serviceType,
     required double totalPrice,
+    String orderType = '',
+    double shippingFee = 0.0,
   }) {
+    final bool isEcommerce = orderType == 'ecommerce';
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16.w),
@@ -357,6 +360,26 @@ class _OrderedState extends State<Ordered> {
                     fontSize: 12.sp,
                     fontWeight: FontWeight.w600,
                     color: Colors.green,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (isEcommerce && shippingFee > 0) ...[
+            SizedBox(height: 4.h),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'ค่าจัดส่ง (ทั่วประเทศ)',
+                  style: styles(fontSize: 12.sp, color: Colors.black54),
+                ),
+                Text(
+                  '฿${shippingFee.toStringAsFixed(2)}',
+                  style: styles(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blue,
                   ),
                 ),
               ],
@@ -549,6 +572,7 @@ class _OrderedState extends State<Ordered> {
     final Timestamp deliveredTime =
         orderData['deliveredAt'] as Timestamp? ?? timestamp;
     final String serviceType = orderData['serviceType'] ?? 'pickup';
+    final String orderType = orderData['orderType'] as String? ?? serviceType;
     final Map<String, dynamic> vi =
         (orderData['vendorInfo'] as Map<String, dynamic>?) ?? {};
     final String vendorNameFromOrder =
@@ -607,13 +631,25 @@ class _OrderedState extends State<Ordered> {
         ),
       );
     }
-    final IconData serviceIcon = serviceType == 'delivery'
+    final bool isEcommerceOrder = orderType == 'ecommerce';
+    final IconData serviceIcon = isEcommerceOrder
+        ? Icons.inventory_2_outlined
+        : serviceType == 'delivery'
         ? Icons.delivery_dining
         : Icons.store;
-    final Color serviceColor = serviceType == 'delivery'
+    final Color serviceColor = isEcommerceOrder
+        ? Colors.blue.shade800
+        : serviceType == 'delivery'
         ? Colors.green
         : Colors.blue;
-    final String serviceLabel = serviceType.toUpperCase();
+    final Color serviceBgColor = isEcommerceOrder
+        ? Colors.blue.shade100
+        : serviceType == 'delivery'
+        ? Colors.green.shade100
+        : Colors.grey.shade100;
+    final String serviceLabel = isEcommerceOrder
+        ? 'Ecommerce'
+        : serviceType.toUpperCase();
     List<Widget> expansionChildren = [];
     for (int i = 0; i < items.length; i++) {
       expansionChildren.add(
@@ -624,14 +660,50 @@ class _OrderedState extends State<Ordered> {
       }
     }
     expansionChildren.add(Divider(height: 1, color: Colors.grey.shade300));
+    final double shippingFee =
+        (orderData['shippingFee'] as num?)?.toDouble() ?? 0.0;
     expansionChildren.add(
       _buildSummary(
         subTotal: subTotal,
         shippingCharge: customerShippingDisplay,
         serviceType: serviceType,
         totalPrice: totalPrice,
+        orderType: orderType,
+        shippingFee: shippingFee,
       ),
     );
+    if (orderType == 'ecommerce') {
+      final String trackingNumber =
+          orderData['trackingNumber'] as String? ?? '';
+      final String shippingCarrier =
+          orderData['shippingCarrier'] as String? ?? '';
+      if (trackingNumber.isNotEmpty) {
+        expansionChildren.add(
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12.w),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              border: Border(top: BorderSide(color: Colors.grey.shade300)),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.local_shipping,
+                  size: 14.sp,
+                  color: Colors.grey[700],
+                ),
+                SizedBox(width: 6.w),
+                Text(
+                  '${shippingCarrier.isNotEmpty ? shippingCarrier : '-'} | $trackingNumber',
+                  style: styles(fontSize: 12.sp, color: Colors.grey.shade700),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
     expansionChildren.add(
       _buildVendorDetails(
         vendorName: vendorName,
@@ -650,7 +722,8 @@ class _OrderedState extends State<Ordered> {
       backgroundColor: Colors.grey.shade100,
       collapsedIconColor: Colors.transparent,
       iconColor: Colors.transparent,
-      tilePadding: EdgeInsets.only(left: 20.w),
+      tilePadding: EdgeInsets.only(left: 12.w, right: 12.w),
+      showTrailingIcon: false,
       collapsedBackgroundColor: Colors.white,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,14 +749,26 @@ class _OrderedState extends State<Ordered> {
           SizedBox(height: 6.h),
           Row(
             children: [
-              Icon(serviceIcon, size: 24.w, color: serviceColor),
-              SizedBox(width: 4.w),
-              Text(
-                serviceLabel,
-                style: styles(
-                  fontSize: 12.sp,
-                  color: serviceColor,
-                  fontWeight: FontWeight.w600,
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: serviceBgColor,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(serviceIcon, size: 11.sp, color: serviceColor),
+                    SizedBox(width: 3.w),
+                    Text(
+                      serviceLabel,
+                      style: styles(
+                        fontSize: 10.sp,
+                        color: serviceColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

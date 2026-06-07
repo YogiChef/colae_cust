@@ -32,13 +32,12 @@ class _CategoryWidgetState extends State<CategoryWidget> {
         setState(() => _selectedCategory = null);
         await Future.delayed(const Duration(milliseconds: 300));
       },
-      color: Colors.red,
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 100.h,
+              height: 130.h,
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
@@ -61,18 +60,13 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                         setState(() => _selectedCategory = categoryKey);
                       },
                       child: Container(
-                        width: 110.w,
+                        width: 100.w,
                         margin: EdgeInsets.symmetric(horizontal: 4.w),
+                        padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12.r),
                           color: Colors.white.withAlpha(
                             isThisSelected ? 20 : 10,
-                          ),
-                          border: Border.all(
-                            color: isThisSelected
-                                ? mainColor
-                                : Colors.transparent,
-                            width: 2,
                           ),
                         ),
                         child: Column(
@@ -83,14 +77,14 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                                 image: CachedNetworkImageProvider(
                                   imageUrl,
                                   maxWidth: 112,
-                                  maxHeight: 112,
+                                  maxHeight: 100,
                                 ),
                                 height: isThisSelected ? 56.r : 52.r,
                                 width: isThisSelected ? 56.r : 52.r,
                                 fit: BoxFit.cover,
                               ),
                             ),
-                            SizedBox(height: 8.h),
+                            SizedBox(height: 12.h),
                             Text(
                               categoryName,
                               textAlign: TextAlign.center,

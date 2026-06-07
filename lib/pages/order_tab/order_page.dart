@@ -51,7 +51,7 @@ class _OrderPageState extends State<OrderPage> {
             ),
             tabs: const [
               Tab(child: Text('รายการที่สัง')),
-              Tab(child: Text('ประวัติการสั่ง')),
+              Tab(child: Text('ประวัติ')),
             ],
           ),
         ),

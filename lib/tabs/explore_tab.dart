@@ -203,7 +203,7 @@ class _ExploreTabPagesState extends State<ExploreTabPages>
                               unselectedItemColor: Colors.white,
                               backgroundColor: mainColor,
                               selectedLabelStyle: GoogleFonts.righteous(
-                                fontSize: 16,
+                                fontSize: 12.sp,
                               ),
                               elevation: 0,
                               items: [

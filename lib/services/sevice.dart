@@ -37,15 +37,13 @@ TextStyle styles({
   double? height,
   FontWeight? fontWeight = FontWeight.w400,
   Color? color = Colors.white,
-  TextDecoration? decoration,
 }) {
-  return GoogleFonts.josefinSans(
+  return GoogleFonts.mali(
     height: height,
     letterSpacing: letterSpacing,
     fontSize: fontSize,
     fontWeight: fontWeight,
     color: color,
-    decoration: decoration,
   );
 }
 

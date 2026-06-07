@@ -56,6 +56,7 @@ class _ChatPageState extends State<ChatPage> {
         .snapshots();
 
     _chatSubscription = _chatStream.listen((snapshot) {
+      _markMessagesAsRead();
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
           0.0,
@@ -163,6 +164,34 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  Future<void> _markMessagesAsRead() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      final snap = await FirebaseFirestore.instance
+          .collection('chats')
+          .where('buyerId', isEqualTo: widget.buyerId)
+          .where('vendorId', isEqualTo: widget.vendorId)
+          .where('proId', isEqualTo: widget.proId)
+          .where('read', isEqualTo: false)
+          .get();
+
+      if (snap.docs.isEmpty) return;
+
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        if (data['senderId'] != uid) {
+          batch.update(doc.reference, {'read': true});
+        }
+      }
+      await batch.commit();
+    } catch (e) {
+      // silently ignore
+    }
+  }
+
   Future<void> _sendMessageToFirestore({
     String message = '',
     String? imageUrl,
@@ -182,6 +211,7 @@ class _ChatPageState extends State<ChatPage> {
         'messageType': messageType,
         'senderId': FirebaseAuth.instance.currentUser!.uid,
         'chatDate': FieldValue.serverTimestamp(),
+        'read': false,
       });
     } catch (e) {
       if (mounted) {

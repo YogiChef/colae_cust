@@ -12,7 +12,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
+import 'package:colae_cut/pages/minor_page/add_address.dart';
 import 'package:colae_cut/pages/minor_page/checkouts_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:colae_cut/services/sevice.dart';
 import 'package:colae_cut/widgets/dialog.dart';
 import '../../../../providers/cart_provider.dart';
@@ -575,6 +577,8 @@ class _CartPageState extends State<CartPage> {
               String buttonText = 'รับบริการ';
               if (cartProvider.serviceType == 'dine-in') {
                 buttonText = 'ออร์เดอร์';
+              } else if (cartProvider.serviceType == 'ecommerce') {
+                buttonText = 'สั่งซื้อ';
               }
 
               return Container(
@@ -601,18 +605,27 @@ class _CartPageState extends State<CartPage> {
                           Text(
                             'Total:',
                             style: styles(
-                              fontSize: 16.sp,
+                              fontSize: 15.sp,
                               color: Colors.grey.shade700,
                             ),
                           ),
                           Text(
                             '฿${cartProvider.subTotal.toStringAsFixed(2)}',
                             style: styles(
-                              fontSize: 16.sp,
+                              fontSize: 15.sp,
                               fontWeight: FontWeight.w700,
                               color: Colors.red.shade700,
                             ),
                           ),
+                          if (cartProvider.serviceType == 'ecommerce') ...[
+                            Text(
+                              'ค่าส่ง: ฿${cartProvider.ecommerceShippingTotal.toStringAsFixed(0)}',
+                              style: styles(
+                                fontSize: 12.sp,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -631,7 +644,11 @@ class _CartPageState extends State<CartPage> {
                         ),
                         label: Text(
                           buttonText,
-                          style: styles(color: Colors.white, fontSize: 14.sp),
+                          style: styles(
+                            color: Colors.white,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         icon: Icon(
                           cartProvider.serviceType == 'dine-in'
@@ -640,12 +657,43 @@ class _CartPageState extends State<CartPage> {
                           color: Colors.white,
                           size: 20.sp,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           if (cartProvider.serviceType == 'dine-in') {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const QrPaymentPage(),
+                              ),
+                            );
+                            return;
+                          }
+                          if (cartProvider.serviceType == 'ecommerce') {
+                            // เช็ค buyer มีที่อยู่จัดส่งหรือไม่
+                            final buyerDoc = await FirebaseFirestore.instance
+                                .collection('buyers')
+                                .doc(FirebaseAuth.instance.currentUser!.uid)
+                                .get();
+                            if (!context.mounted) return;
+                            final buyerData = buyerDoc.data() ?? {};
+                            final hasAddress =
+                                (buyerData['address'] as String?)?.isNotEmpty ??
+                                false;
+                            if (!hasAddress) {
+                              Fluttertoast.showToast(
+                                msg: 'กรุณาเพิ่มที่อยู่จัดส่งก่อน',
+                              );
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => Address(userData: buyerData),
+                                ),
+                              );
+                              if (result != true || !context.mounted) return;
+                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const QrPaymentPage(),
                               ),
                             );
                             return;

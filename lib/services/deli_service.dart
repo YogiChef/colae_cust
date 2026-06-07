@@ -2,6 +2,7 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/models/vendor_model.dart';
+import 'package:geolocator/geolocator.dart';
 
 class DeliService {
   static bool isStoreOpenNow(Map<String, dynamic>? storeHours) {
@@ -109,5 +110,42 @@ class DeliService {
         return vendor;
       }).toList();
     });
+  }
+
+  /// คำนวณระยะทาง (กม.) ระหว่าง 2 จุด
+  static double calculateDistanceKm({
+    required double lat1,
+    required double lng1,
+    required double lat2,
+    required double lng2,
+  }) {
+    return Geolocator.distanceBetween(lat1, lng1, lat2, lng2) / 1000.0;
+  }
+
+  /// เช็คว่า product ใน vendor นี้ "เห็นได้" จากตำแหน่ง buyer ไหม
+  /// - ใกล้ ≤ radiusKm → เห็นทุก saleMode
+  /// - ไกล > radiusKm → เห็นเฉพาะ ecommerce
+  static bool isProductVisibleByDistance({
+    required String? saleMode,
+    required GeoPoint? vendorLocation,
+    required double? buyerLat,
+    required double? buyerLng,
+    double radiusKm = 10.0,
+  }) {
+    final mode = saleMode ?? 'delivery';
+    // ecommerce เห็นได้ทุกที่
+    if (mode == 'ecommerce') return true;
+
+    // delivery: ต้องมี location ทั้ง 2 ฝั่ง
+    if (vendorLocation == null || buyerLat == null || buyerLng == null) {
+      return false;
+    }
+    final dist = calculateDistanceKm(
+      lat1: buyerLat,
+      lng1: buyerLng,
+      lat2: vendorLocation.latitude,
+      lng2: vendorLocation.longitude,
+    );
+    return dist <= radiusKm;
   }
 }

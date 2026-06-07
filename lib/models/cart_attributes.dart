@@ -15,6 +15,9 @@ class CartAttr {
   Timestamp scheduleDate;
   List<Map<String, dynamic>> selectedOptions;
   double? extraPrice;
+  List<dynamic> shippingTiers;
+  double shippingExtraBase;
+  double shippingExtraPerUnit;
 
   CartAttr({
     required this.proName,
@@ -30,6 +33,9 @@ class CartAttr {
     required this.scheduleDate,
     required this.selectedOptions,
     this.extraPrice,
+    this.shippingTiers = const [],
+    this.shippingExtraBase = 0.0,
+    this.shippingExtraPerUnit = 0.0,
   });
 
   void increase() {
@@ -57,6 +63,9 @@ class CartAttr {
       'scheduleDate': scheduleDate,
       'selectedOptions': selectedOptions,
       'extraPrice': extraPrice ?? 0.0,
+      'shippingTiers': shippingTiers,
+      'shippingExtraBase': shippingExtraBase,
+      'shippingExtraPerUnit': shippingExtraPerUnit,
     };
   }
 
@@ -77,6 +86,9 @@ class CartAttr {
         json['selectedOptions'] ?? [],
       ),
       extraPrice: (json['extraPrice'] ?? 0.0).toDouble(),
+      shippingTiers: List<dynamic>.from(json['shippingTiers'] ?? []),
+      shippingExtraBase: (json['shippingExtraBase'] ?? 0.0).toDouble(),
+      shippingExtraPerUnit: (json['shippingExtraPerUnit'] ?? 0.0).toDouble(),
     );
   }
 

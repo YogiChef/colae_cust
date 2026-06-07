@@ -14,11 +14,11 @@ import 'package:colae_cut/pages/map_page.dart';
 import 'package:colae_cut/auth/login_page.dart';
 import 'package:colae_cut/widgets/botton_widget.dart';
 import 'package:colae_cut/widgets/input_textfield.dart';
-import 'dart:typed_data';
 import 'package:cloud_functions/cloud_functions.dart';
 
 class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
+  final String? referralCode;
+  const SignUpPage({super.key, this.referralCode});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
@@ -35,6 +35,14 @@ class _SignUpPageState extends State<SignUpPage> {
   final _referralCodeController = TextEditingController();
 
   Uint8List? _image, _coverImage;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.referralCode != null && widget.referralCode!.isNotEmpty) {
+      _referralCodeController.text = widget.referralCode!;
+    }
+  }
 
   @override
   void dispose() {
@@ -60,8 +68,9 @@ class _SignUpPageState extends State<SignUpPage> {
             _image!,
             _coverImage!,
           );
-          final referralCode =
-              _referralCodeController.text.trim().toUpperCase();
+          final referralCode = _referralCodeController.text
+              .trim()
+              .toUpperCase();
           if (referralCode.isNotEmpty) {
             try {
               final functions = FirebaseFunctions.instanceFor(
@@ -291,6 +300,13 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                 ),
                 InputTextfield(
+                  hintText: 'รหัสแนะนำ',
+                  textInputType: TextInputType.text,
+                  prefixIcon: Icon(Icons.card_giftcard, color: Colors.purple),
+                  controller: _referralCodeController,
+                  validator: (_) => null,
+                ),
+                InputTextfield(
                   hintText: 'ชื่อ-สกุล',
                   textInputType: TextInputType.text,
                   prefixIcon: Icon(Icons.person, color: Colors.yellow.shade900),
@@ -374,16 +390,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     }
                   },
                 ),
-                InputTextfield(
-                  hintText: 'รหัสแนะนำ (ถ้ามี)',
-                  textInputType: TextInputType.text,
-                  prefixIcon: Icon(
-                    Icons.card_giftcard,
-                    color: Colors.purple,
-                  ),
-                  controller: _referralCodeController,
-                  validator: (_) => null,
-                ),
+
                 SizedBox(height: 70.h),
               ],
             ),

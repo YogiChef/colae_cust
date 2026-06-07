@@ -26,6 +26,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/services/notification_service.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+String? pendingReferralCode;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +72,8 @@ void main() async {
   );
   await FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);
 
+  await initializeDateFormatting('th', null);
+
   await NotificationService.init();
 
   final currentUser = FirebaseAuth.instance.currentUser;
@@ -102,13 +107,32 @@ void main() async {
 }
 
 void _handleIncomingLink(Uri uri) {
+  // Phase 4: deep link จาก r.html
+  // รูปแบบ:
+  //   colae-cust://signup?code=XXXXX
+  //   colae-cust://referral?code=XXXXX
+  //   https://colae-app.web.app/r?code=XXXXX&app=cust
+
+  final code = uri.queryParameters['code'];
+
+  if (code != null && code.isNotEmpty) {
+    pendingReferralCode = code;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (Get.context != null) {
+          Get.offAll(() => SignUpPage(referralCode: code));
+        }
+      });
+    }
+    return;
+  }
+
   if (uri.scheme == 'delibox' && uri.host == 'table') {
     final restaurantId = uri.queryParameters['restaurant_id'];
     final tableNumber = uri.queryParameters['table'];
-
-    if (restaurantId == null || restaurantId.isEmpty) {
-      return;
-    }
+    if (restaurantId == null || restaurantId.isEmpty) return;
     Get.to(
       () => MainProductPage(vendorid: restaurantId, tableNumber: tableNumber),
     );
@@ -252,17 +276,6 @@ class MyApp extends StatelessWidget {
             GetPage(name: '/', page: () => const ExploreTabPages()),
             GetPage(name: '/login', page: () => const LoginPage()),
             GetPage(name: '/signup', page: () => const SignUpPage()),
-            GetPage(
-              name: '/signup',
-              page: () {
-                final args = Get.arguments as Map<String, dynamic>?;
-                return LoginPage(
-                  userId: args?['userId'] as String?,
-                  email: args?['email'] as String?,
-                  token: args?['token'] as String?,
-                );
-              },
-            ),
           ],
           home: StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),
@@ -313,6 +326,16 @@ class _SplashViewState extends State<SplashView> {
   void initState() {
     _timer = Timer(const Duration(seconds: 7), () {
       if (!mounted) return;
+      if (pendingReferralCode != null &&
+          FirebaseAuth.instance.currentUser == null) {
+        final code = pendingReferralCode;
+        pendingReferralCode = null;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => SignUpPage(referralCode: code)),
+        );
+        return;
+      }
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(

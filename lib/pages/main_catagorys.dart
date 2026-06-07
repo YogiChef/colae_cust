@@ -132,7 +132,7 @@ class _CategoryHomeState extends State<CategoryHome> {
     double lat2,
     double lng2,
   ) {
-    const double earthRadius = 6371; // รัศมีโลก (กม.)
+    const double earthRadius = 6371;
 
     double dLat = _degreesToRadians(lat2 - lat1);
     double dLng = _degreesToRadians(lng2 - lng1);
@@ -176,7 +176,7 @@ class _CategoryHomeState extends State<CategoryHome> {
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-            child: CircularProgressIndicator(color: Colors.red),
+            child: CircularProgressIndicator(color: Colors.transparent),
           );
         }
 
@@ -210,7 +210,7 @@ class _CategoryHomeState extends State<CategoryHome> {
               });
               await _getCurrentLocation();
             },
-            color: Colors.red,
+            color: Colors.transparent,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
@@ -276,7 +276,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                 color: Colors.white,
                 elevation: 1,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6.r),
+                  borderRadius: BorderRadius.circular(4.r),
                 ),
                 child: SizedBox(
                   height: 190.h,
@@ -288,7 +288,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                         height: 170.h,
                         width: 170.w,
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(6.r),
+                          borderRadius: BorderRadius.circular(4.r),
                           child: CachedNetworkImage(
                             imageUrl: storeData['image'],
                             fit: BoxFit.cover,
@@ -313,9 +313,10 @@ class _CategoryHomeState extends State<CategoryHome> {
                                   storeData['bussinessName'],
                                   overflow: TextOverflow.ellipsis,
                                   style: styles(
-                                    fontSize: 16.sp,
+                                    fontSize: 15.sp,
                                     height: 1,
-                                    color: Colors.black87,
+                                    color: Colors.deepPurple[900],
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
                               ),
@@ -390,7 +391,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                                 child: Text(
                                   formattedHours,
                                   style: styles(
-                                    fontSize: 12.sp,
+                                    fontSize: 11.sp,
                                     color: Colors.deepOrange,
                                     fontWeight: FontWeight.w400,
                                   ),

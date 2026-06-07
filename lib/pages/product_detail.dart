@@ -13,8 +13,9 @@ import 'package:colae_cut/services/sevice.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductDetail extends StatefulWidget {
-  const ProductDetail({super.key, this.productData});
+  const ProductDetail({super.key, this.productData, this.isEcommerceContext = false});
   final dynamic productData;
+  final bool isEcommerceContext;
   @override
   State createState() => _ProductDetailState();
 }
@@ -886,6 +887,41 @@ class _ProductDetailState extends State<ProductDetail> {
         }
       });
 
+      // เช็ค mode mismatch ระหว่าง ecommerce กับ delivery
+      final bool cartIsEcommerce = cartProvider.serviceType == 'ecommerce';
+      if (cartProvider.getCartItem.isNotEmpty && cartIsEcommerce != widget.isEcommerceContext) {
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('เปลี่ยนรูปแบบการสั่ง'),
+            content: Text(
+              cartIsEcommerce
+                  ? 'ตะกร้าของคุณมีสินค้าส่งทั่วประเทศอยู่\nต้องการเคลียร์ตะกร้าและเริ่มสั่งใหม่หรือไม่?'
+                  : 'ตะกร้าของคุณมีสินค้าใกล้ร้านอยู่\nต้องการเคลียร์ตะกร้าและเริ่มสั่งใหม่หรือไม่?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('ยกเลิก'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('เคลียร์ตะกร้า'),
+              ),
+            ],
+          ),
+        );
+        if (confirm != true) {
+          if (mounted) setState(() => isLoading = false);
+          return;
+        }
+        cartProvider.removeAllItem();
+      }
+
+      if (widget.isEcommerceContext) {
+        cartProvider.setServiceType('ecommerce');
+      }
+
       final String currentKey = _getCompositeKey(
         proId,
         _flattenedSelectedOptions,
@@ -912,6 +948,11 @@ class _ProductDetailState extends State<ProductDetail> {
         selectedSizeOption?['name'] ?? '',
         date,
         _flattenedSelectedOptions,
+        shippingTiers: productMap!['shippingTiers'] is List
+            ? List<dynamic>.from(productMap!['shippingTiers'] as List)
+            : [],
+        shippingExtraBase: (productMap!['shippingExtraBase'] as num?)?.toDouble() ?? 0.0,
+        shippingExtraPerUnit: (productMap!['shippingExtraPerUnit'] as num?)?.toDouble() ?? 0.0,
       );
 
       if (mounted) {

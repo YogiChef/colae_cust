@@ -1,5 +1,6 @@
 ﻿// ignore_for_file: use_build_context_synchronously
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:colae_cut/tabs/explore_tab.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -8,7 +9,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:colae_cut/services/sevice.dart';
-import 'package:colae_cut/pages/map_page.dart';
 import 'package:colae_cut/widgets/botton_widget.dart';
 import 'package:colae_cut/widgets/input_textfield.dart';
 
@@ -82,7 +82,7 @@ class _LoginPageState extends State<LoginPage>
 
         await Future.delayed(const Duration(milliseconds: 100));
         if (!mounted) return;
-        Get.to(const MapPage());
+        Get.offAll(() => const ExploreTabPages());
       } on FirebaseAuthException catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);

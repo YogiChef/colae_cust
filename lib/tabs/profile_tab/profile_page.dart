@@ -2,7 +2,8 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/providers/cart_provider.dart';
-import 'package:flutter/cupertino.dart';
+import 'package:colae_cut/providers/active_order_provider.dart';
+import 'package:colae_cut/providers/vendor_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:colae_cut/auth/address/address_book.dart';
@@ -12,7 +13,10 @@ import 'package:colae_cut/pages/order_tab/order_page.dart';
 import 'package:colae_cut/services/sevice.dart';
 import 'package:colae_cut/widgets/dialog.dart';
 import 'package:colae_cut/pages/minor_page/referral_dashboard_page.dart';
+import 'package:colae_cut/pages/minor_page/edit_profile_page.dart';
+import 'package:colae_cut/pages/minor_page/notification_settings_page.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
   final bool isParentLoading;
@@ -114,21 +118,14 @@ class _ProfilePageState extends State<ProfilePage> {
                           ],
                         ),
                       ),
-                      Positioned(
-                        top: 30.h,
-                        right: 20.w,
-                        child: Icon(
-                          CupertinoIcons.moon,
-                          color: Colors.yellow.shade900,
-                        ),
-                      ),
                     ],
                   ),
                   SizedBox(height: 20.h),
                   firstBlock(
                     onPress: () {},
                     icon: Icons.settings,
-                    text: 'ตั้งค่า',
+                    text: 'แนะนำเฟื่อน',
+                    subtitle: 'รายได้ Referral',
                   ),
                   firstBlock(onPress: () {}, icon: Icons.phone, text: 'Phone'),
                   firstBlock(
@@ -142,6 +139,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     text: 'ออเดอร์',
                   ),
                   firstBlock(
+                    onPress: () {},
+                    icon: Icons.notifications,
+                    text: 'การแจ้งเตือน',
+                    subtitle: 'ตั้งค่าการแจ้งเตือน',
+                  ),
+
+                  firstBlock(
                     onPress: () {
                       MyAlertDialog.showMyDialog(
                         contant: 'Are you sure to log out ',
@@ -151,17 +155,36 @@ class _ProfilePageState extends State<ProfilePage> {
                           Navigator.pop(context);
                         },
                         tabYes: () async {
-                          await auth.signOut().whenComplete(
-                            () => Navigator.push(
+                          try {
+                            Provider.of<CartProvider>(
                               context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginPage(),
-                              ),
-                            ),
-                          );
+                              listen: false,
+                            ).removeAllItem();
+                          } catch (_) {}
+                          try {
+                            Provider.of<ActiveOrderProvider>(
+                              context,
+                              listen: false,
+                            ).clear();
+                          } catch (_) {}
+                          try {
+                            Provider.of<VendorProvider>(
+                              context,
+                              listen: false,
+                            ).clear();
+                          } catch (_) {}
 
-                          await Future.delayed(
-                            const Duration(microseconds: 100),
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.remove('buyer_last_mode');
+
+                          await auth.signOut();
+
+                          if (!context.mounted) return;
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const LoginPage(),
+                            ),
+                            (route) => false,
                           );
                         },
                         title: 'ออกจากระบบ',
@@ -170,42 +193,45 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: Icons.logout,
                     text: 'ออกจากระบบ',
                   ),
+                  SizedBox(height: 70.h),
                 ],
               ),
             ),
           )
         : FutureBuilder<DocumentSnapshot>(
             future: _userFuture,
-            builder: (BuildContext context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-              if (snapshot.hasError) {
-                return const Text("Something went wrong");
-              }
+            builder:
+                (
+                  BuildContext context,
+                  AsyncSnapshot<DocumentSnapshot> snapshot,
+                ) {
+                  if (snapshot.hasError) {
+                    return const Text("Something went wrong");
+                  }
 
-              if (snapshot.hasData && !snapshot.data!.exists) {
-                return const Text("Document does not exist");
-              }
+                  if (snapshot.hasData && !snapshot.data!.exists) {
+                    return const Text("Document does not exist");
+                  }
 
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: SizedBox.shrink());
-              }
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: SizedBox.shrink());
+                  }
 
-              if (snapshot.connectionState == ConnectionState.done) {
-                Map<String, dynamic> data =
-                    snapshot.data!.data() as Map<String, dynamic>;
-                return Scaffold(
-                  body: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Stack(
+                  if (snapshot.connectionState == ConnectionState.done) {
+                    Map<String, dynamic> data =
+                        snapshot.data!.data() as Map<String, dynamic>;
+                    return Scaffold(
+                      body: SingleChildScrollView(
+                        child: Column(
                           children: [
                             Container(
                               height: height * 0.33.h,
                               width: double.infinity,
                               padding: EdgeInsets.fromLTRB(
                                 20.w,
-                                80.h,
-                                20.w,
                                 40.h,
+                                20.w,
+                                12.h,
                               ),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.only(
@@ -218,23 +244,51 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ),
                               ),
                               child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  CircleAvatar(
-                                    radius: 50.dg,
-                                    backgroundImage: NetworkImage(
-                                      data['profileImage'],
-                                    ),
+                                  Stack(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 50.dg,
+                                        backgroundImage: NetworkImage(
+                                          data['profileImage'],
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 0,
+                                        right: 0,
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.cyanAccent,
+                                          radius: 18.dg,
+                                          child: IconButton(
+                                            icon: Icon(
+                                              Icons.edit,
+                                              size: 20.dg,
+                                              color: Colors.redAccent,
+                                            ),
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const EditProfilePage(),
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   Expanded(
                                     child: Padding(
                                       padding: EdgeInsets.only(
-                                        left: 4.w,
-                                        top: 4.h,
+                                        left: 12.w,
+                                        top: 12.h,
                                       ),
                                       child: Column(
                                         crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                            CrossAxisAlignment.end,
                                         mainAxisAlignment:
                                             MainAxisAlignment.end,
                                         children: [
@@ -242,17 +296,26 @@ class _ProfilePageState extends State<ProfilePage> {
                                             data['fullName'],
                                             textAlign: TextAlign.start,
                                             overflow: TextOverflow.ellipsis,
-                                            style: styles(fontSize: 16.sp),
+                                            style: styles(
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.blue[800],
+                                            ),
                                           ),
+                                          SizedBox(height: 4.h),
                                           Text(
                                             data['custemail'],
                                             textAlign: TextAlign.start,
                                             overflow: TextOverflow.ellipsis,
-                                            style: styles(fontSize: 14.sp),
+                                            style: styles(
+                                              fontSize: 14.sp,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
+                                          SizedBox(height: 12.h),
                                           SizedBox(
                                             height: 40.h,
-                                            width: width * .6,
+                                            width: width * .5.w,
                                             child: ElevatedButton(
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: mainColor,
@@ -287,101 +350,126 @@ class _ProfilePageState extends State<ProfilePage> {
                                 ],
                               ),
                             ),
-                          ],
-                        ),
-                        SizedBox(height: 20.h),
-                        firstBlock(
-                          onPress: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ReferralDashboardPage(),
-                              ),
-                            );
-                          },
-                          icon: Icons.card_giftcard,
-                          text: 'ธุรกิจ',
-                          subtitle: 'รายได้ Referral',
-                        ),
-                        firstBlock(
-                          onPress: () {
-                            callVendor(data['custphone']);
-                          },
-                          icon: Icons.phone,
-                          text: 'โทรศัพท์',
-                          subtitle: data['custphone'],
-                        ),
-                        firstBlock(
-                          onPress: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CartPage(),
-                              ),
-                            );
-                          },
-                          icon: Icons.shopping_cart,
-                          text: 'ตะกร้า',
-                        ),
-                        firstBlock(
-                          onPress: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const OrderPage(),
-                              ),
-                            );
-                          },
-                          icon: Icons.description,
-                          text: 'ออเดอร์',
-                        ),
-                        firstBlock(
-                          onPress: () {
-                            MyAlertDialog.showMyDialog(
-                              contant: 'Are you sure to signout ',
-                              context: context,
-                              img: const AssetImage('images/signout.png'),
-                              tabNo: () {
-                                Navigator.pop(context);
-                              },
-                              tabYes: () async {
-                                final cartProvider = Provider.of<CartProvider>(
-                                  context,
-                                  listen: false,
-                                );
-                                cartProvider
-                                    .removeAllItem(); // หรือ cartProvider.clearCart() ถ้ามี method นี้
+                            SizedBox(height: 20.h),
 
-                                await auth.signOut().whenComplete(
-                                  () => Navigator.pushReplacement(
-                                    // ใช้ pushReplacement เพื่อ replace route (ไม่ stack)
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => const LoginPage(),
-                                    ),
+                            firstBlock(
+                              onPress: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const ReferralDashboardPage(),
                                   ),
                                 );
-
-                                await Future.delayed(
-                                  const Duration(milliseconds: 100),
-                                ); // FIXED: milliseconds แทน microseconds (100us = 0ms)
                               },
-                              title: 'Log Out',
-                            );
-                          },
-                          icon: Icons.logout,
-                          text: 'ออกจากระบบ',
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
+                              icon: Icons.card_giftcard,
+                              text: 'ธุรกิจ',
+                              subtitle: 'รายได้ Referral',
+                            ),
 
-              return Center(
-                child: CircularProgressIndicator(color: Colors.yellow.shade900),
-              );
-            },
+                            firstBlock(
+                              onPress: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const CartPage(),
+                                  ),
+                                );
+                              },
+                              icon: Icons.shopping_cart,
+                              text: 'ตะกร้า',
+                            ),
+                            firstBlock(
+                              onPress: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const OrderPage(),
+                                  ),
+                                );
+                              },
+                              icon: Icons.description,
+                              text: 'ออเดอร์',
+                            ),
+                            firstBlock(
+                              onPress: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const NotificationSettingsPage(),
+                                  ),
+                                );
+                              },
+                              icon: Icons.notifications,
+                              text: 'การแจ้งเตือน',
+                              subtitle: 'ตั้งค่าการแจ้งเตือน',
+                            ),
+
+                            firstBlock(
+                              onPress: () {
+                                MyAlertDialog.showMyDialog(
+                                  contant: 'Are you sure to signout ',
+                                  context: context,
+                                  img: const AssetImage('images/signout.png'),
+                                  tabNo: () {
+                                    Navigator.pop(context);
+                                  },
+                                  tabYes: () async {
+                                    // เคลียร์ provider ทุกตัวก่อน signOut
+                                    try {
+                                      Provider.of<CartProvider>(
+                                        context,
+                                        listen: false,
+                                      ).removeAllItem();
+                                    } catch (_) {}
+                                    try {
+                                      Provider.of<ActiveOrderProvider>(
+                                        context,
+                                        listen: false,
+                                      ).clear();
+                                    } catch (_) {}
+                                    try {
+                                      Provider.of<VendorProvider>(
+                                        context,
+                                        listen: false,
+                                      ).clear();
+                                    } catch (_) {}
+
+                                    // ลบ mode ที่จำไว้ เพื่อให้เลือกบริการใหม่
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    await prefs.remove('buyer_last_mode');
+
+                                    await auth.signOut();
+
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(
+                                        builder: (_) => const LoginPage(),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  },
+                                  title: 'Log Out',
+                                );
+                              },
+                              icon: Icons.logout,
+                              text: 'ออกจากระบบ',
+                            ),
+                            SizedBox(height: 70.h),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.yellow.shade900,
+                    ),
+                  );
+                },
           );
   }
 
@@ -398,11 +486,19 @@ class _ProfilePageState extends State<ProfilePage> {
         leading: Icon(icon),
         title: Text(
           text,
-          style: styles(fontSize: 20.sp, color: Colors.grey),
+          style: styles(
+            fontSize: 16.sp,
+            color: Colors.black54,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         subtitle: Text(
           subtitle,
-          style: styles(fontSize: 16.sp, color: Colors.grey),
+          style: styles(
+            fontSize: 12.sp,
+            color: Colors.grey,
+            fontWeight: FontWeight.w400,
+          ),
         ),
       ),
     );

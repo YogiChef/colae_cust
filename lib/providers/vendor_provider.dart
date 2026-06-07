@@ -34,5 +34,10 @@ class VendorProvider with ChangeNotifier {
     return null;
   }
 
-  void clearCache() => _cachedVendors.clear();
+  void clear() {
+    _cachedVendors.clear();
+    notifyListeners();
+  }
+
+  void clearCache() => clear();
 }

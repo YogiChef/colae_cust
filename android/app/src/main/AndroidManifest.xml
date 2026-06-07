@@ -13,7 +13,7 @@
 
 
     <application
-        android:label="Colae"
+        android:label="colae_cust"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data
@@ -35,21 +35,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            
-            <intent-filter android:autoVerify="true">
+
+            <!-- Deep Link: custom scheme -->
+            <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="deli-box" android:host="register" />
+                <data android:scheme="colae-cust" />
             </intent-filter>
-           
+
+            <!-- App Link: HTTPS -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https"
-                      android:host="hub-eef58.web.app"
-                      android:pathPrefix="/register" />
+                      android:host="colae-app.web.app"
+                      android:pathPrefix="/r" />
             </intent-filter>
            
             <meta-data

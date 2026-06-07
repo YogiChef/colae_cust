@@ -15,6 +15,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:colae_cut/services/sevice.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 
 class ProductsTab extends StatefulWidget {
@@ -34,6 +35,13 @@ class _ProductsTabState extends State<ProductsTab> {
   final Map<String, bool> _vendorOpenStatus = {};
   final Map<String, StreamSubscription<DocumentSnapshot>> _vendorSubs = {};
 
+  // buyer location
+  double? _buyerLat;
+  double? _buyerLng;
+
+  // vendor info cache: vendorId → {'location': GeoPoint?, ...}
+  final Map<String, Map<String, dynamic>> _vendorInfo = {};
+
   void _subscribeVendor(String vendorId) {
     if (vendorId.isEmpty || _vendorSubs.containsKey(vendorId)) return;
     _vendorSubs[vendorId] = FirebaseFirestore.instance
@@ -42,14 +50,24 @@ class _ProductsTabState extends State<ProductsTab> {
         .snapshots()
         .listen((snap) {
           if (!snap.exists || !mounted) return;
-          final vendor = VendorModel.fromJson(
-            snap.data() as Map<String, dynamic>,
-          );
+          final data = snap.data() as Map<String, dynamic>;
+          final vendor = VendorModel.fromJson(data);
           final isOpen =
               !vendor.temporarilyClosed &&
               DeliService.isStoreOpenNow(vendor.storeHours);
-          if (_vendorOpenStatus[vendorId] != isOpen) {
+
+          final old = _vendorInfo[vendorId];
+          final oldLoc = old?['location'] as GeoPoint?;
+          final newLoc = data['location'] as GeoPoint?;
+          final locationChanged =
+              oldLoc?.latitude != newLoc?.latitude ||
+              oldLoc?.longitude != newLoc?.longitude;
+
+          if (old == null ||
+              _vendorOpenStatus[vendorId] != isOpen ||
+              locationChanged) {
             _vendorOpenStatus[vendorId] = isOpen;
+            _vendorInfo[vendorId] = data;
             if (mounted) setState(() {});
           }
         });
@@ -72,6 +90,27 @@ class _ProductsTabState extends State<ProductsTab> {
         .orderBy('proName')
         .snapshots();
     _scrollController.addListener(_onScroll);
+    _fetchBuyerLocation();
+  }
+
+  Future<void> _fetchBuyerLocation() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+        ),
+      );
+      if (!mounted) return;
+      setState(() {
+        _buyerLat = pos.latitude;
+        _buyerLng = pos.longitude;
+      });
+    } catch (_) {}
   }
 
   @override
@@ -93,20 +132,44 @@ class _ProductsTabState extends State<ProductsTab> {
   }
 
   List<QueryDocumentSnapshot> _applyFilter(List<QueryDocumentSnapshot> docs) {
+    // subscribe vendor stream สำหรับ vendorId ที่ยังไม่ได้ subscribe
     for (final doc in docs) {
       final vendorId =
           (doc.data() as Map<String, dynamic>)['vendorId'] as String? ?? '';
       _subscribeVendor(vendorId);
     }
-    final openDocs = docs.where((doc) {
+
+    final filtered = docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final vendorId = data['vendorId'] as String? ?? '';
-      return _vendorOpenStatus[vendorId] ?? true;
+      final saleMode = data['saleMode'] as String? ?? 'delivery';
+      final vendorData = _vendorInfo[vendorId];
+
+      // vendor stream ยังไม่ได้ snapshot → ซ่อนไว้ก่อน รอ location
+      if (vendorData == null) return false;
+
+      final vendorLocation = vendorData['location'] as GeoPoint?;
+
+      bool isNearVendor = false;
+      if (vendorLocation != null && _buyerLat != null && _buyerLng != null) {
+        final distKm = DeliService.calculateDistanceKm(
+          lat1: _buyerLat!,
+          lng1: _buyerLng!,
+          lat2: vendorLocation.latitude,
+          lng2: vendorLocation.longitude,
+        );
+        isNearVendor = distKm <= 10.0;
+      }
+
+      // ลูกค้าใกล้ร้าน → ซ่อนทั้งหมด (ควรเข้าหน้าร้านเอง)
+      // ลูกค้าไกลร้าน → เห็นเฉพาะ ecommerce
+      if (isNearVendor) return false;
+      return saleMode == 'ecommerce';
     }).toList();
 
-    if (_searchQuery.isEmpty) return openDocs;
+    if (_searchQuery.isEmpty) return filtered;
     final q = _searchQuery.toLowerCase();
-    return openDocs.where((doc) {
+    return filtered.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final name = (data['proName'] ?? '').toString().toLowerCase();
       final store = (data['bussinessName'] ?? '').toString().toLowerCase();
@@ -124,6 +187,14 @@ class _ProductsTabState extends State<ProductsTab> {
         }
         final allDocs = snapshot.data?.docs ?? [];
         final items = _applyFilter(allDocs);
+        final waitingForVendors =
+            allDocs.isNotEmpty &&
+            allDocs.any((doc) {
+              final vendorId =
+                  (doc.data() as Map<String, dynamic>)['vendorId'] as String? ??
+                  '';
+              return vendorId.isNotEmpty && !_vendorInfo.containsKey(vendorId);
+            });
         return Scaffold(
           backgroundColor: Color(0xFFF5F5F5),
           appBar: AppBar(
@@ -163,128 +234,160 @@ class _ProductsTabState extends State<ProductsTab> {
               child: Container(height: 12.h, color: mainColor),
             ),
           ),
-          body: RefreshIndicator(
-            onRefresh: () async {
-              _unsubscribeAllVendors();
-            },
-            color: mainColor,
-            child:
-                items.isEmpty &&
-                    snapshot.connectionState != ConnectionState.waiting
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('images/emptyproduct.png', width: 250.w),
-
-                        Text(
-                          _searchQuery.isNotEmpty
-                              ? 'ไม่พบสินค้าที่ค้นหา'
-                              : 'ยังไม่มีสินค้า',
-                          style: styles(
-                            fontSize: 20.sp,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : GridView.builder(
-                    controller: _scrollController,
-                    padding: EdgeInsets.only(
-                      bottom: 70.h,
-                      right: 1.w,
-                      left: 1.w,
-                    ),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 6.w,
-                      mainAxisSpacing: 6.h,
-                      childAspectRatio: 0.62,
-                    ),
-                    itemCount: items.length,
-                    itemBuilder: (context, index) {
-                      final data = items[index].data() as Map<String, dynamic>;
-                      final String proName = data['proName'] ?? 'ไม่มีชื่อ';
-                      final double price =
-                          (data['price'] as num?)?.toDouble() ?? 0.0;
-                      final int pqty = (data['pqty'] as num?)?.toInt() ?? 0;
-                      final List imageList = data['imageUrl'] ?? [];
-                      final String imageUrl = imageList.isNotEmpty
-                          ? imageList.first.toString()
-                          : '';
-                      final bool outOfStock = pqty <= 0;
-
-                      return GestureDetector(
-                        onTap: outOfStock
-                            ? null
-                            : () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ProductDetail(productData: items[index]),
+          body: Column(
+            children: [
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    _unsubscribeAllVendors();
+                  },
+                  color: mainColor,
+                  child:
+                      snapshot.connectionState == ConnectionState.waiting ||
+                          (items.isEmpty && waitingForVendors)
+                      ? Center(
+                          child: CircularProgressIndicator(color: mainColor),
+                        )
+                      : items.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Image.asset('images/waiting.webp', width: 250.w),
+                              Text(
+                                _searchQuery.isNotEmpty
+                                    ? 'ไม่พบสินค้าที่ค้นหา'
+                                    : 'ยังไม่มีสินค้า',
+                                style: styles(
+                                  fontSize: 20.sp,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
-                        child: Card(
-                          margin: EdgeInsets.zero,
-                          color: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(2.r),
+                            ],
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 220.h,
-                                width: double.infinity,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.vertical(
-                                    top: Radius.circular(2.r),
-                                  ),
-                                  child: Stack(
-                                    children: [
-                                      ColorFiltered(
-                                        colorFilter: outOfStock
-                                            ? const ColorFilter.matrix([
-                                                0.2126,
-                                                0.7152,
-                                                0.0722,
-                                                0,
-                                                0,
-                                                0.2126,
-                                                0.7152,
-                                                0.0722,
-                                                0,
-                                                0,
-                                                0.2126,
-                                                0.7152,
-                                                0.0722,
-                                                0,
-                                                0,
-                                                0,
-                                                0,
-                                                0,
-                                                1,
-                                                0,
-                                              ])
-                                            : const ColorFilter.mode(
-                                                Colors.transparent,
-                                                BlendMode.multiply,
-                                              ),
-                                        child: imageUrl.isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: imageUrl,
-                                                fit: BoxFit.cover,
-                                                width: double.infinity,
-                                                height: 220.h,
-                                                placeholder: (_, __) =>
-                                                    Container(
-                                                      color:
-                                                          Colors.grey.shade200,
+                        )
+                      : GridView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(
+                            bottom: 70.h,
+                            right: 1.w,
+                            left: 1.w,
+                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 6.w,
+                                mainAxisSpacing: 6.h,
+                                childAspectRatio: 0.62,
+                              ),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final data =
+                                items[index].data() as Map<String, dynamic>;
+                            final String proName =
+                                data['proName'] ?? 'ไม่มีชื่อ';
+                            final double price =
+                                (data['price'] as num?)?.toDouble() ?? 0.0;
+                            final int pqty =
+                                (data['pqty'] as num?)?.toInt() ?? 0;
+                            final List imageList = data['imageUrl'] ?? [];
+                            final String imageUrl = imageList.isNotEmpty
+                                ? imageList.first.toString()
+                                : '';
+                            final bool outOfStock = pqty <= 0;
+
+                            return GestureDetector(
+                              onTap: outOfStock
+                                  ? null
+                                  : () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ProductDetail(
+                                          productData: items[index],
+                                          isEcommerceContext: true,
+                                        ),
+                                      ),
+                                    ),
+                              child: Card(
+                                margin: EdgeInsets.zero,
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(2.r),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    SizedBox(
+                                      height: 220.h,
+                                      width: double.infinity,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.vertical(
+                                          top: Radius.circular(2.r),
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            ColorFiltered(
+                                              colorFilter: outOfStock
+                                                  ? const ColorFilter.matrix([
+                                                      0.2126,
+                                                      0.7152,
+                                                      0.0722,
+                                                      0,
+                                                      0,
+                                                      0.2126,
+                                                      0.7152,
+                                                      0.0722,
+                                                      0,
+                                                      0,
+                                                      0.2126,
+                                                      0.7152,
+                                                      0.0722,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      0,
+                                                      1,
+                                                      0,
+                                                    ])
+                                                  : const ColorFilter.mode(
+                                                      Colors.transparent,
+                                                      BlendMode.multiply,
                                                     ),
-                                                errorWidget: (_, __, ___) =>
-                                                    Container(
+                                              child: imageUrl.isNotEmpty
+                                                  ? CachedNetworkImage(
+                                                      imageUrl: imageUrl,
+                                                      fit: BoxFit.cover,
+                                                      width: double.infinity,
+                                                      height: 220.h,
+                                                      placeholder: (_, __) =>
+                                                          Container(
+                                                            color: Colors
+                                                                .grey
+                                                                .shade200,
+                                                          ),
+                                                      errorWidget:
+                                                          (
+                                                            _,
+                                                            __,
+                                                            ___,
+                                                          ) => Container(
+                                                            color: Colors
+                                                                .grey
+                                                                .shade200,
+                                                            alignment: Alignment
+                                                                .center,
+                                                            child: Icon(
+                                                              Icons.fastfood,
+                                                              size: 60.sp,
+                                                              color: Colors
+                                                                  .grey
+                                                                  .shade400,
+                                                            ),
+                                                          ),
+                                                    )
+                                                  : Container(
                                                       color:
                                                           Colors.grey.shade200,
                                                       alignment:
@@ -297,84 +400,81 @@ class _ProductsTabState extends State<ProductsTab> {
                                                             .shade400,
                                                       ),
                                                     ),
-                                              )
-                                            : Container(
-                                                color: Colors.grey.shade200,
-                                                alignment: Alignment.center,
-                                                child: Icon(
-                                                  Icons.fastfood,
-                                                  size: 60.sp,
-                                                  color: Colors.grey.shade400,
+                                            ),
+
+                                            if (outOfStock)
+                                              Positioned(
+                                                top: 8.h,
+                                                right: 8.w,
+                                                child: Container(
+                                                  padding: EdgeInsets.symmetric(
+                                                    horizontal: 8.w,
+                                                    vertical: 4.h,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8.r,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    'หมด',
+                                                    style: styles(
+                                                      fontSize: 10.sp,
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
+                                          ],
+                                        ),
                                       ),
-                                      if (outOfStock)
-                                        Positioned(
-                                          top: 8.h,
-                                          right: 8.w,
-                                          child: Container(
-                                            padding: EdgeInsets.symmetric(
-                                              horizontal: 8.w,
-                                              vertical: 4.h,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red,
-                                              borderRadius:
-                                                  BorderRadius.circular(8.r),
-                                            ),
-                                            child: Text(
-                                              'หมด',
-                                              style: styles(
-                                                fontSize: 10.sp,
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w700,
-                                              ),
-                                            ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10.w,
+                                        vertical: 4.h,
+                                      ),
+                                      child: Text(
+                                        proName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: styles(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ),
+                                    Align(
+                                      alignment: Alignment.bottomRight,
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          right: 10.w,
+                                          bottom: 4.h,
+                                        ),
+                                        child: Text(
+                                          '฿${price.toStringAsFixed(0)}',
+                                          style: styles(
+                                            fontSize: 13.sp,
+                                            color: Colors.black54,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 10.w,
-                                  vertical: 4.h,
-                                ),
-                                child: Text(
-                                  proName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: styles(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                              ),
-                              Align(
-                                alignment: Alignment.bottomRight,
-                                child: Padding(
-                                  padding: EdgeInsets.only(
-                                    right: 10.w,
-                                    bottom: 4.h,
-                                  ),
-                                  child: Text(
-                                    '฿${price.toStringAsFixed(0)}',
-                                    style: styles(
-                                      fontSize: 13.sp,
-                                      color: Colors.black54,
-                                      fontWeight: FontWeight.w600,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                ),
+              ),
+            ],
           ),
           floatingActionButton: SafeArea(
             child: Consumer<CartProvider>(
