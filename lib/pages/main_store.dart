@@ -261,7 +261,7 @@ class _MainStorePageState extends State<MainStorePage> {
                       children: [
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 10.h),
-                          height: 170.w,
+                          height: 160.w,
                           width: 170.w,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4.r),
@@ -298,7 +298,7 @@ class _MainStorePageState extends State<MainStorePage> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: 6.h),
+                                SizedBox(height: 3.h),
                                 Flexible(
                                   child: Text(
                                     '${storeData['address']}, ${storeData['district']}',
@@ -324,8 +324,8 @@ class _MainStorePageState extends State<MainStorePage> {
                                 ),
                                 Padding(
                                   padding: EdgeInsets.only(
-                                    bottom: 4.h,
-                                    top: 6.h,
+                                    bottom: 3.h,
+                                    top: 3.h,
                                   ),
                                   child: Text(
                                     '${distance.toStringAsFixed(1)} km',
@@ -336,7 +336,7 @@ class _MainStorePageState extends State<MainStorePage> {
                                     ),
                                   ),
                                 ),
-                                SizedBox(height: 8.h),
+                                SizedBox(height: 3.h),
                                 Container(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 12.w,
@@ -355,7 +355,7 @@ class _MainStorePageState extends State<MainStorePage> {
                                           size: 12,
                                           color: Colors.white,
                                         ),
-                                        SizedBox(width: 4.w),
+                                        SizedBox(width: 2.w),
                                       ],
                                       Text(
                                         isOpen ? 'เปิด' : 'ปิด',

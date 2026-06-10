@@ -160,9 +160,6 @@ class _ProductsTabState extends State<ProductsTab> {
         );
         isNearVendor = distKm <= 10.0;
       }
-
-      // ลูกค้าใกล้ร้าน → ซ่อนทั้งหมด (ควรเข้าหน้าร้านเอง)
-      // ลูกค้าไกลร้าน → เห็นเฉพาะ ecommerce
       if (isNearVendor) return false;
       return saleMode == 'ecommerce';
     }).toList();
@@ -276,10 +273,11 @@ class _ProductsTabState extends State<ProductsTab> {
                           ),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
+                                mainAxisExtent: 290.h,
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 6.w,
                                 mainAxisSpacing: 6.h,
-                                childAspectRatio: 0.62,
+                                childAspectRatio: 0.82,
                               ),
                           itemCount: items.length,
                           itemBuilder: (context, index) {
@@ -433,6 +431,7 @@ class _ProductsTabState extends State<ProductsTab> {
                                         ),
                                       ),
                                     ),
+                                    SizedBox(height: 2.h),
                                     Padding(
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 10.w,

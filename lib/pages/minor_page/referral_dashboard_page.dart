@@ -111,6 +111,47 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
     return total;
   }
 
+  String _currentMonthKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}';
+  }
+
+  Future<double> _getMonthlyAmount() async {
+    final doc = await FirebaseFirestore.instance
+        .collection('buyers')
+        .doc(_uid)
+        .collection('monthly_spending')
+        .doc(_currentMonthKey())
+        .get();
+    return (doc.data()?['total'] as num?)?.toDouble() ?? 0;
+  }
+
+  String _formatThaiMonth(String monthKey) {
+    const monthNames = [
+      'ม.ค.',
+      'ก.พ.',
+      'มี.ค.',
+      'เม.ย.',
+      'พ.ค.',
+      'มิ.ย.',
+      'ก.ค.',
+      'ส.ค.',
+      'ก.ย.',
+      'ต.ค.',
+      'พ.ย.',
+      'ธ.ค.',
+    ];
+    final parts = monthKey.split('-');
+    if (parts.length == 2) {
+      final monthIdx = int.tryParse(parts[1]);
+      final year = int.tryParse(parts[0]);
+      if (monthIdx != null && monthIdx >= 1 && monthIdx <= 12 && year != null) {
+        return '${monthNames[monthIdx - 1]} ${year + 543}';
+      }
+    }
+    return monthKey;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,8 +194,6 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
             });
           }
           final int count = (buyerData['referralCount'] as num?)?.toInt() ?? 0;
-          final bool qualified =
-              buyerData['referralQualified'] as bool? ?? false;
 
           return StreamBuilder<QuerySnapshot>(
             stream: FirebaseFirestore.instance
@@ -199,7 +238,7 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
                     children: [
                       _codeCard(code),
                       _mySpendingCard(),
-                      _downlineChart(qualified, count),
+                      _downlineChart(count),
                       _earningsCard(pending, total, withdrawn),
                       SizedBox(height: 20.h),
                       _withdrawButton(pending),
@@ -230,15 +269,7 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
               ),
             ),
             Spacer(),
-            IconButton(
-              icon: Icon(Icons.copy, color: Colors.grey, size: 20.sp),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: code));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('คัดลอกลิงก์แล้ว')),
-                );
-              },
-            ),
+
             IconButton(
               icon: Icon(Icons.share, color: Colors.grey, size: 20.sp),
               onPressed: () => Share.share(
@@ -729,7 +760,8 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
     );
   }
 
-  Widget _downlineChart(bool qualified, int count) {
+  Widget _downlineChart(int count) {
+    final bool qualified = count >= 12;
     final levels = ['1', '2', '3', '4', '5'];
     return Padding(
       padding: EdgeInsets.all(16.w),
@@ -748,7 +780,7 @@ class _ReferralDashboardPageState extends State<ReferralDashboardPage> {
               ),
               SizedBox(width: 8.w),
               Text(
-                '${qualified ? 'รับรายได้!' : 'ภารกิจ'} 5 ชั้น $count/12',
+                '${qualified ? 'รับรายได้!' : 'ภารกิจ'} 5 ชั้น ${count > 12 ? '$count' : '$count/12'}',
                 style: styles(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,

@@ -10,8 +10,6 @@ import 'package:colae_cut/widgets/location_widget.dart';
 import 'package:colae_cut/widgets/mode_card_row.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -29,7 +27,7 @@ class _HomepageState extends State<Homepage>
   final String? buyerId = FirebaseAuth.instance.currentUser?.uid;
   late final Stream<QuerySnapshot> _categoryStream;
   int _categoryKey = 0;
-  bool _isChecking = true;
+  final bool _isChecking = true;
 
   @override
   void initState() {

@@ -71,7 +71,6 @@ class _MainProductPageState extends State<MainProductPage> {
   }
 
   Future<void> _loadBuyerLocation() async {
-    // 1. โหลด cache ก่อน → แสดงสินค้าทันที
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedLat = prefs.getDouble('buyer_lat');
@@ -85,7 +84,6 @@ class _MainProductPageState extends State<MainProductPage> {
       }
     } catch (_) {}
 
-    // 2. update GPS ใน background
     _updateLocationInBackground();
   }
 
@@ -184,7 +182,7 @@ class _MainProductPageState extends State<MainProductPage> {
               children: [
                 Container(
                   width: double.infinity,
-                  height: height,
+                  height: double.infinity,
                   decoration: BoxDecoration(
                     border: Border.all(),
                     color: mainColor,
@@ -320,10 +318,11 @@ class _MainProductPageState extends State<MainProductPage> {
                         bottom: 80.h,
                       ),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        mainAxisExtent: 290.h,
                         crossAxisCount: 2,
                         crossAxisSpacing: 6.w,
                         mainAxisSpacing: 6.h,
-                        childAspectRatio: 0.62,
+                        childAspectRatio: 0.82,
                       ),
                       itemBuilder: (BuildContext context, int index) {
                         final productData = approvedDocs[index];
@@ -450,10 +449,11 @@ class _MainProductPageState extends State<MainProductPage> {
                                     ),
                                   ),
                                 ),
+                                SizedBox(height: 6.h),
                                 Padding(
                                   padding: EdgeInsets.symmetric(
                                     horizontal: 10.w,
-                                    vertical: 4.h,
+                                    vertical: 6.h,
                                   ),
                                   child: Text(
                                     productData['proName'] ?? 'ไม่มีชื่อสินค้า',

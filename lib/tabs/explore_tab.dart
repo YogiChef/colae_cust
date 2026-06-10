@@ -175,7 +175,7 @@ class _ExploreTabPagesState extends State<ExploreTabPages>
         bottomNavigationBar: SafeArea(
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
-            height: _hideNavBar ? 0 : 65.h,
+            height: _hideNavBar ? 0 : 70.w,
             child: _hideNavBar
                 ? const SizedBox.shrink()
                 : Consumer<CartProvider>(

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:colae_cut/pages/hotel/hotel_main_page.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -24,7 +25,8 @@ class HotelDepositPaymentPage extends StatefulWidget {
   });
 
   @override
-  State<HotelDepositPaymentPage> createState() => _HotelDepositPaymentPageState();
+  State<HotelDepositPaymentPage> createState() =>
+      _HotelDepositPaymentPageState();
 }
 
 class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
@@ -172,14 +174,18 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
           .collection('hotel_bookings')
           .doc(widget.bookingId)
           .update({
-        'depositPaid': true,
-        'depositSlipUrl': url,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+            'depositPaid': true,
+            'depositSlipUrl': url,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
 
       EasyLoading.showSuccess('ส่งหลักฐานสำเร็จ');
       if (mounted) {
-        Navigator.popUntil(context, (route) => route.isFirst);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HotelMainPage()),
+          (route) => false,
+        );
         Fluttertoast.showToast(msg: 'จองสำเร็จ! รอเจ้าของยืนยัน');
       }
     } catch (e) {
@@ -193,7 +199,10 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(backgroundColor: mainColor, foregroundColor: Colors.white),
+        appBar: AppBar(
+          backgroundColor: mainColor,
+          foregroundColor: Colors.white,
+        ),
         body: Center(child: CircularProgressIndicator(color: mainColor)),
       );
     }
@@ -204,7 +213,10 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
     if (promptPay.isEmpty) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('สแกน QR Code', style: styles(color: Colors.white, fontSize: 18.sp)),
+          title: Text(
+            'สแกน QR Code',
+            style: styles(color: Colors.white, fontSize: 18.sp),
+          ),
           backgroundColor: mainColor,
           foregroundColor: Colors.white,
         ),
@@ -235,156 +247,177 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
         ),
         title: Text(
           'สแกน QR Code',
-          style: styles(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w600),
+          style: styles(
+            color: Colors.white,
+            fontSize: 18.sp,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         backgroundColor: mainColor,
         foregroundColor: Colors.white,
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Screenshot(
-                  controller: _screenshotController,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.r),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(24.w),
-                    child: Column(
-                      children: [
-                        // PromptPay header
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF003D6B),
-                            borderRadius: BorderRadius.circular(8.r),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.all(20.w),
+                  child: Screenshot(
+                    controller: _screenshotController,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16.r),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 12,
+                            offset: Offset(0, 4),
                           ),
-                          child: const Text(
-                            'PromptPay',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 20,
+                        ],
+                      ),
+                      padding: EdgeInsets.all(24.w),
+                      child: Column(
+                        children: [
+                          // PromptPay header
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 20.w,
+                              vertical: 10.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF003D6B),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: const Text(
+                              'PromptPay',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                              ),
                             ),
                           ),
-                        ),
-                        SizedBox(height: 20.h),
-                        // QR Code
-                        QrImageView(
-                          data: payload,
-                          version: QrVersions.auto,
-                          size: 260.h,
-                        ),
-                        SizedBox(height: 20.h),
-                        // ยอดเงิน
-                        Text(
-                          '฿${widget.depositAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            fontWeight: FontWeight.bold,
-                            color: mainColor,
+                          SizedBox(height: 20.h),
+                          // QR Code
+                          QrImageView(
+                            data: payload,
+                            version: QrVersions.auto,
+                            size: 260.h,
                           ),
-                        ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          'ยอดมัดจำที่ต้องชำระ',
-                          style: styles(fontSize: 13.sp, color: Colors.grey[600]),
-                        ),
-                        SizedBox(height: 12.h),
-                        const Divider(),
-                        SizedBox(height: 8.h),
-                        if (ownerName.isNotEmpty) ...[
+                          SizedBox(height: 20.h),
+                          // ยอดเงิน
                           Text(
-                            ownerName,
-                            style: styles(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                            '฿${widget.depositAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 28.sp,
+                              fontWeight: FontWeight.bold,
+                              color: mainColor,
                             ),
                           ),
                           SizedBox(height: 4.h),
+                          Text(
+                            'ยอดมัดจำที่ต้องชำระ',
+                            style: styles(
+                              fontSize: 13.sp,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+                          const Divider(),
+                          SizedBox(height: 8.h),
+                          if (ownerName.isNotEmpty) ...[
+                            Text(
+                              ownerName,
+                              style: styles(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                          ],
+                          Text(
+                            promptPay,
+                            style: styles(
+                              fontSize: 13.sp,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
                         ],
-                        Text(
-                          promptPay,
-                          style: styles(fontSize: 13.sp, color: Colors.blue[700]),
-                        ),
-                        SizedBox(height: 8.h),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          // ปุ่ม บันทึก + ยืนยัน
-          Container(
-            padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.download, color: Colors.orange),
-                    label: Text(
-                      'บันทึก',
-                      style: styles(
-                        fontSize: 15.sp,
-                        color: Colors.orange,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.yellow.shade50,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      side: const BorderSide(color: Colors.orange),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
-                      ),
-                    ),
-                    onPressed: _saveQrToGallery,
+            // ปุ่ม บันทึก + ยืนยัน
+            Container(
+              padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 8,
+                    offset: Offset(0, -2),
                   ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.check_circle, color: Colors.white),
-                    label: Text(
-                      'ยืนยัน',
-                      style: styles(
-                        fontSize: 15.sp,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.download, color: Colors.orange),
+                      label: Text(
+                        'บันทึก',
+                        style: styles(
+                          fontSize: 15.sp,
+                          color: Colors.orange,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _uploading ? Colors.grey : mainColor,
-                      padding: EdgeInsets.symmetric(vertical: 14.h),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.r),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.yellow.shade50,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        side: const BorderSide(color: Colors.orange),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
                       ),
+                      onPressed: _saveQrToGallery,
                     ),
-                    onPressed: _uploading ? null : _pickAndUploadSlip,
                   ),
-                ),
-              ],
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.check_circle, color: Colors.white),
+                      label: Text(
+                        'ยืนยัน',
+                        style: styles(
+                          fontSize: 15.sp,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _uploading ? Colors.grey : mainColor,
+                        padding: EdgeInsets.symmetric(vertical: 14.h),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                      onPressed: _uploading ? null : _pickAndUploadSlip,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -36,73 +36,75 @@ class _CategoryWidgetState extends State<CategoryWidget> {
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
-            child: SizedBox(
-              height: 130.h,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: 8.w),
-                child: Row(
-                  children: widget.categories.map((categoryData) {
-                    final data = categoryData.data() as Map<String, dynamic>;
-                    final String categoryName =
-                        data['categoryName'] as String? ?? '';
-                    final String categoryKey =
-                        data['category'] as String? ??
-                        data['categoryKey'] as String? ??
-                        categoryName;
-                    final String imageUrl = data['image'] as String? ?? '';
-                    final bool isThisSelected =
-                        _selectedCategory == categoryKey;
+            child: Flexible(
+              child: SizedBox(
+                height: 130.h,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 8.w),
+                  child: Row(
+                    children: widget.categories.map((categoryData) {
+                      final data = categoryData.data() as Map<String, dynamic>;
+                      final String categoryName =
+                          data['categoryName'] as String? ?? '';
+                      final String categoryKey =
+                          data['category'] as String? ??
+                          data['categoryKey'] as String? ??
+                          categoryName;
+                      final String imageUrl = data['image'] as String? ?? '';
+                      final bool isThisSelected =
+                          _selectedCategory == categoryKey;
 
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() => _selectedCategory = categoryKey);
-                      },
-                      child: Container(
-                        width: 100.w,
-                        margin: EdgeInsets.symmetric(horizontal: 4.w),
-                        padding: EdgeInsets.only(top: 20.h, bottom: 10.h),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12.r),
-                          color: Colors.white.withAlpha(
-                            isThisSelected ? 20 : 10,
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() => _selectedCategory = categoryKey);
+                        },
+                        child: Container(
+                          width: 100.w,
+                          margin: EdgeInsets.symmetric(horizontal: 4.w),
+                          padding: EdgeInsets.only(top: 20.h),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.r),
+                            color: Colors.white.withAlpha(
+                              isThisSelected ? 20 : 10,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12.r),
+                                child: Image(
+                                  image: CachedNetworkImageProvider(
+                                    imageUrl,
+                                    maxWidth: 112,
+                                    maxHeight: 100,
+                                  ),
+                                  height: isThisSelected ? 56.r : 52.r,
+                                  width: isThisSelected ? 56.r : 52.r,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              SizedBox(height: 12.h),
+                              Text(
+                                categoryName,
+                                textAlign: TextAlign.center,
+                                style: styles(
+                                  fontSize: isThisSelected ? 14.sp : 12.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: isThisSelected
+                                      ? Colors.green
+                                      : Colors.grey.shade700,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ),
                         ),
-                        child: Column(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12.r),
-                              child: Image(
-                                image: CachedNetworkImageProvider(
-                                  imageUrl,
-                                  maxWidth: 112,
-                                  maxHeight: 100,
-                                ),
-                                height: isThisSelected ? 56.r : 52.r,
-                                width: isThisSelected ? 56.r : 52.r,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            SizedBox(height: 12.h),
-                            Text(
-                              categoryName,
-                              textAlign: TextAlign.center,
-                              style: styles(
-                                fontSize: isThisSelected ? 14.sp : 12.sp,
-                                fontWeight: FontWeight.w700,
-                                color: isThisSelected
-                                    ? Colors.green
-                                    : Colors.grey.shade700,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                      );
+                    }).toList(),
+                  ),
                 ),
               ),
             ),

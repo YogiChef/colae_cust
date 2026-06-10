@@ -285,7 +285,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                     children: [
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10.w),
-                        height: 170.h,
+                        height: 160.h,
                         width: 170.w,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4.r),
@@ -320,7 +320,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                                   ),
                                 ),
                               ),
-                              SizedBox(height: 6.h),
+                              SizedBox(height: 3.h),
                               Flexible(
                                 child: Text(
                                   '${storeData['address']}, ${storeData['district']}',
@@ -344,7 +344,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                                 ),
                               ),
                               Padding(
-                                padding: EdgeInsets.only(top: 4.h, bottom: 4.h),
+                                padding: EdgeInsets.only(top: 3.h, bottom: 3.h),
                                 child: Text(
                                   '${distance.toStringAsFixed(1)} km',
                                   style: styles(
@@ -354,7 +354,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                                   ),
                                 ),
                               ),
-                              SizedBox(height: 8.h),
+                              SizedBox(height: 3.h),
                               Container(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 12.w,
@@ -373,7 +373,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                                         size: 12,
                                         color: Colors.white,
                                       ),
-                                      SizedBox(width: 4.w),
+                                      SizedBox(width: 2.w),
                                     ],
                                     Text(
                                       isOpen ? 'เปิด' : 'ปิด',
