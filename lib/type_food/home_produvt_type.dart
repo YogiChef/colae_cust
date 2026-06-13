@@ -1,6 +1,7 @@
 ﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:colae_cut/pages/product_detail.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:colae_cut/services/sevice.dart';
 
 class HomeProductType extends StatefulWidget {
@@ -77,11 +78,15 @@ class _HomeProductTypeState extends State<HomeProductType> {
                       productData['pqty'] <= 0
                           ? Stack(
                               children: [
-                                Image(
-                                  image: NetworkImage(
-                                    productData['imageUrl'][0],
-                                  ),
+                                CachedNetworkImage(
+                                  imageUrl: productData['imageUrl'][0],
                                   fit: BoxFit.cover,
+                                  memCacheWidth: 400,
+                                  placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                                  errorWidget: (_, __, ___) => Container(
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                                  ),
                                 ),
                                 Positioned.fill(
                                   child: Container(
@@ -96,9 +101,15 @@ class _HomeProductTypeState extends State<HomeProductType> {
                                 ),
                               ],
                             )
-                          : Image(
-                              image: NetworkImage(productData['imageUrl'][0]),
+                          : CachedNetworkImage(
+                              imageUrl: productData['imageUrl'][0],
                               fit: BoxFit.cover,
+                              memCacheWidth: 400,
+                              placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                              errorWidget: (_, __, ___) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.broken_image, color: Colors.grey),
+                              ),
                             ),
                       Padding(
                         padding: const EdgeInsets.only(

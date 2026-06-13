@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, unnecessary_underscores
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/tabs/explore_tab.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -157,10 +158,12 @@ class HotelFavoritesTab extends StatelessWidget {
                 width: 130.w,
                 height: 120.h,
                 child: images.isNotEmpty
-                    ? Image.network(
-                        images.first,
+                    ? CachedNetworkImage(
+                        imageUrl: images.first,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        memCacheWidth: 400,
+                        placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                        errorWidget: (_, __, ___) => Container(
                           color: Colors.grey.shade200,
                           child: const Icon(
                             Icons.hotel,
@@ -215,7 +218,7 @@ class HotelFavoritesTab extends StatelessWidget {
                             SizedBox(width: 2.w),
                             Text(
                               '${rating.toStringAsFixed(1)} ($totalReviews)',
-                              style: TextStyle(
+                              style: styles(
                                 fontSize: 11.sp,
                                 color: Colors.grey,
                               ),
@@ -234,7 +237,7 @@ class HotelFavoritesTab extends StatelessWidget {
                         ),
                         Text(
                           '฿${minPrice.toStringAsFixed(0)}',
-                          style: TextStyle(
+                          style: styles(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                             color: mainColor,
@@ -252,7 +255,14 @@ class HotelFavoritesTab extends StatelessWidget {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('ลบจากรายการโปรด?'),
+                    title: Text(
+                      'ลบจากรายการโปรด?',
+                      style: styles(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black54,
+                      ),
+                    ),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
@@ -263,10 +273,7 @@ class HotelFavoritesTab extends StatelessWidget {
                           backgroundColor: Colors.red,
                         ),
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text(
-                          'ลบ',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                        child: Text('ลบ', style: styles(color: Colors.white)),
                       ),
                     ],
                   ),

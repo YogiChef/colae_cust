@@ -126,13 +126,13 @@ class _MyBookingsTabState extends State<MyBookingsTab>
         return ListView.builder(
           padding: EdgeInsets.all(12.w),
           itemCount: docs.length,
-          itemBuilder: (_, i) => _bookingCard(docs[i]),
+          itemBuilder: (_, i) => _bookingCard(docs[i], isUpcoming: isUpcoming),
         );
       },
     );
   }
 
-  Widget _bookingCard(QueryDocumentSnapshot doc) {
+  Widget _bookingCard(QueryDocumentSnapshot doc, {required bool isUpcoming}) {
     final d = doc.data() as Map<String, dynamic>;
     final status = d['status'] as String? ?? '';
     final checkIn = (d['checkIn'] as Timestamp).toDate();
@@ -150,8 +150,11 @@ class _MyBookingsTabState extends State<MyBookingsTab>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) =>
-                  HotelBookingDetailPage(bookingId: doc.id, bookingData: d),
+              builder: (_) => HotelBookingDetailPage(
+                bookingId: doc.id,
+                bookingData: d,
+                isHistory: !isUpcoming,
+              ),
             ),
           );
         },
@@ -160,7 +163,6 @@ class _MyBookingsTabState extends State<MyBookingsTab>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // รหัสจอง
               if ((d['bookingCode'] ?? '').toString().isNotEmpty) ...[
                 Row(
                   children: [
@@ -172,7 +174,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                     SizedBox(width: 4.w),
                     Text(
                       '#${d['bookingCode']}',
-                      style: TextStyle(
+                      style: styles(
                         fontSize: 11.sp,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w600,
@@ -206,7 +208,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                     ),
                     child: Text(
                       _statusLabel(status),
-                      style: TextStyle(
+                      style: styles(
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w400,
                         color: _statusColor(status),
@@ -230,7 +232,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                     style: styles(fontSize: 11.sp, color: Colors.grey[700]),
                   ),
                   SizedBox(width: 8.w),
-                  const Text('•', style: TextStyle(color: Colors.grey)),
+                  Text('•', style: styles(color: Colors.grey)),
                   SizedBox(width: 8.w),
                   Text(
                     '${d['nights']} คืน',
@@ -244,7 +246,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                 children: [
                   Text(
                     '฿${totalPrice.toStringAsFixed(0)}',
-                    style: TextStyle(
+                    style: styles(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
                       color: mainColor,
@@ -264,7 +266,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                           ),
                           child: Text(
                             'มัดจำ ✓',
-                            style: TextStyle(
+                            style: styles(
                               fontSize: 10.sp,
                               color: Colors.orange[800],
                             ),
@@ -283,7 +285,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
                           ),
                           child: Text(
                             'จ่ายครบ ✓',
-                            style: TextStyle(
+                            style: styles(
                               fontSize: 10.sp,
                               color: Colors.green[800],
                             ),
@@ -310,7 +312,7 @@ class _MyBookingsTabState extends State<MyBookingsTab>
       case 'checked_in':
         return Colors.green;
       case 'completed':
-        return Colors.grey;
+        return Colors.indigo;
       case 'cancelled':
         return Colors.red;
       default:

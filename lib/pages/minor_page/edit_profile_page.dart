@@ -1,6 +1,7 @@
 // ignore_for_file: curly_braces_in_flow_control_structures
 
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -246,7 +247,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   backgroundImage: _newImage != null
                       ? FileImage(_newImage!) as ImageProvider
                       : (_profileImageUrl.isNotEmpty
-                            ? NetworkImage(_profileImageUrl)
+                            ? CachedNetworkImageProvider(_profileImageUrl)
                             : null),
                   child: (_newImage == null && _profileImageUrl.isEmpty)
                       ? Icon(Icons.person, size: 60.sp, color: Colors.grey)

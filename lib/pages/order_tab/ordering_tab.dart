@@ -3,6 +3,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/pages/minor_page/chat_page.dart';
 import 'package:colae_cut/pages/minor_page/customer_rider_chat_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:colae_cut/services/sevice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
@@ -477,7 +478,7 @@ class _OrderingState extends State<Ordering> {
                 child: CircleAvatar(
                   radius: 20.r,
                   backgroundImage: storeImage.isNotEmpty
-                      ? NetworkImage(storeImage)
+                      ? CachedNetworkImageProvider(storeImage)
                       : null,
                   child: storeImage.isEmpty
                       ? Icon(Icons.store, size: 20.r)
@@ -598,7 +599,7 @@ class _OrderingState extends State<Ordering> {
                         radius: 20.r,
                         backgroundColor: Colors.green.shade100,
                         backgroundImage: riderPhoto.isNotEmpty
-                            ? NetworkImage(riderPhoto)
+                            ? CachedNetworkImageProvider(riderPhoto)
                             : null,
                         child: riderPhoto.isEmpty
                             ? Icon(

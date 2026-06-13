@@ -293,7 +293,8 @@ class _ProductsTabState extends State<ProductsTab> {
                             final String imageUrl = imageList.isNotEmpty
                                 ? imageList.first.toString()
                                 : '';
-                            final bool outOfStock = pqty <= 0;
+                            final bool trackStock = data['trackStock'] as bool? ?? true;
+                            final bool outOfStock = trackStock && (pqty <= 0);
 
                             return GestureDetector(
                               onTap: outOfStock

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:colae_cut/services/sevice.dart';
 import 'package:colae_cut/pages/hotel/hotel_detail_page.dart';
 import 'package:colae_cut/pages/hotel/hotel_filter_page.dart';
@@ -99,7 +100,6 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
           d['distance'] = 9999.0;
         }
 
-        // ดึงราคาต่ำสุดจาก rooms subcollection
         try {
           final roomsSnap = await FirebaseFirestore.instance
               .collection('hotels')
@@ -120,7 +120,6 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
           d['minPrice'] = 0.0;
         }
 
-        // กรองเพิ่มเติม
         final minPrice = _filters['minPrice'];
         final maxPrice = _filters['maxPrice'];
         final minRating = _filters['minRating'];
@@ -137,7 +136,6 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
           continue;
         }
 
-        // amenities filter
         final selectedAmenities = List<String>.from(
           _filters['amenities'] ?? [],
         );
@@ -439,7 +437,6 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
         ),
         child: Row(
           children: [
-            // รูปภาพ
             ClipRRect(
               borderRadius: BorderRadius.horizontal(left: Radius.circular(2.r)),
               child: Container(
@@ -453,10 +450,12 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
                 ),
                 height: double.infinity,
                 child: images.isNotEmpty
-                    ? Image.network(
-                        images.first,
+                    ? CachedNetworkImage(
+                        imageUrl: images.first,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        memCacheWidth: 800,
+                        placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                        errorWidget: (_, __, ___) => Container(
                           color: Colors.grey.shade200,
                           child: const Icon(
                             Icons.hotel,
@@ -514,18 +513,18 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
                             SizedBox(width: 2.w),
                             Text(
                               rating.toStringAsFixed(1),
-                              style: TextStyle(fontSize: 11.sp),
+                              style: styles(fontSize: 11.sp),
                             ),
                             Text(
                               ' ($totalReviews)',
-                              style: TextStyle(
+                              style: styles(
                                 fontSize: 11.sp,
                                 color: Colors.grey,
                               ),
                             ),
                             Text(
                               ' • ',
-                              style: TextStyle(
+                              style: styles(
                                 fontSize: 11.sp,
                                 color: Colors.grey,
                               ),
@@ -539,7 +538,7 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
                               distance < 9999
                                   ? '${distance.toStringAsFixed(1)} กม.'
                                   : '-',
-                              style: TextStyle(
+                              style: styles(
                                 fontSize: 11.sp,
                                 color: Colors.grey,
                               ),
@@ -558,7 +557,7 @@ class _HotelSearchTabState extends State<HotelSearchTab> {
                         ),
                         Text(
                           '฿${minPrice.toStringAsFixed(0)}',
-                          style: TextStyle(
+                          style: styles(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.bold,
                             color: mainColor,

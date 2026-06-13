@@ -16,12 +16,14 @@ class HotelDepositPaymentPage extends StatefulWidget {
   final String bookingId;
   final String hotelOwnerId;
   final double depositAmount;
+  final bool isFullPayment;
 
   const HotelDepositPaymentPage({
     super.key,
     required this.bookingId,
     required this.hotelOwnerId,
     required this.depositAmount,
+    this.isFullPayment = false,
   });
 
   @override
@@ -173,20 +175,33 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
       await FirebaseFirestore.instance
           .collection('hotel_bookings')
           .doc(widget.bookingId)
-          .update({
-            'depositPaid': true,
-            'depositSlipUrl': url,
-            'updatedAt': FieldValue.serverTimestamp(),
-          });
+          .update(
+            widget.isFullPayment
+                ? {
+                    'fullPaymentSlipUrl': url,
+                    'fullPaymentUploadedAt': FieldValue.serverTimestamp(),
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  }
+                : {
+                    'depositPaid': true,
+                    'depositSlipUrl': url,
+                    'updatedAt': FieldValue.serverTimestamp(),
+                  },
+          );
 
       EasyLoading.showSuccess('ส่งหลักฐานสำเร็จ');
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HotelMainPage()),
-          (route) => false,
-        );
-        Fluttertoast.showToast(msg: 'จองสำเร็จ! รอเจ้าของยืนยัน');
+        if (widget.isFullPayment) {
+          Navigator.pop(context);
+          Fluttertoast.showToast(msg: 'ส่งสลิปแล้ว — รอเจ้าของยืนยัน');
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const HotelMainPage()),
+            (route) => false,
+          );
+          Fluttertoast.showToast(msg: 'จองสำเร็จ! รอเจ้าของยืนยัน');
+        }
       }
     } catch (e) {
       EasyLoading.showError('ผิดพลาด: $e');
@@ -214,7 +229,7 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
       return Scaffold(
         appBar: AppBar(
           title: Text(
-            'สแกน QR Code',
+            widget.isFullPayment ? 'จ่ายส่วนที่เหลือ' : 'สแกน QR Code',
             style: styles(color: Colors.white, fontSize: 18.sp),
           ),
           backgroundColor: mainColor,
@@ -246,7 +261,7 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'สแกน QR Code',
+          widget.isFullPayment ? 'จ่ายส่วนที่เหลือ' : 'สแกน QR Code',
           style: styles(
             color: Colors.white,
             fontSize: 18.sp,
@@ -291,12 +306,12 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
                               color: const Color(0xFF003D6B),
                               borderRadius: BorderRadius.circular(8.r),
                             ),
-                            child: const Text(
+                            child: Text(
                               'PromptPay',
-                              style: TextStyle(
+                              style: styles(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 20,
+                                fontSize: 20.sp,
                               ),
                             ),
                           ),
@@ -311,15 +326,17 @@ class _HotelDepositPaymentPageState extends State<HotelDepositPaymentPage> {
                           // ยอดเงิน
                           Text(
                             '฿${widget.depositAmount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 28.sp,
+                            style: styles(
+                              fontSize: 20.sp,
                               fontWeight: FontWeight.bold,
                               color: mainColor,
                             ),
                           ),
                           SizedBox(height: 4.h),
                           Text(
-                            'ยอดมัดจำที่ต้องชำระ',
+                            widget.isFullPayment
+                                ? 'ยอดส่วนที่เหลือ'
+                                : 'ยอดมัดจำที่ต้องชำระ',
                             style: styles(
                               fontSize: 13.sp,
                               color: Colors.grey[600],

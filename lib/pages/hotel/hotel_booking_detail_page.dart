@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,10 +15,12 @@ import 'package:colae_cut/services/sevice.dart';
 class HotelBookingDetailPage extends StatefulWidget {
   final String bookingId;
   final Map<String, dynamic> bookingData;
+  final bool isHistory;
   const HotelBookingDetailPage({
     super.key,
     required this.bookingId,
     required this.bookingData,
+    this.isHistory = false,
   });
 
   @override
@@ -96,7 +99,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
 
               Text(
                 d['bookingCode'] ?? '-',
-                style: TextStyle(
+                style: styles(
                   fontSize: 13.sp,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.2,
@@ -128,7 +131,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                 children: [
                   Text(
                     _statusLabel(status),
-                    style: TextStyle(
+                    style: styles(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.bold,
                       color: _statusColor(status),
@@ -190,7 +193,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                 ),
             ],
           ),
-          if (depositSlipUrl != null) ...[
+          if (!widget.isHistory && depositSlipUrl != null) ...[
             SizedBox(height: 20.h),
             InkWell(
               onTap: () => _showSlipDialog(depositSlipUrl, 'Slip มัดจำ'),
@@ -211,7 +214,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
               ),
             ),
           ],
-          if (fullPaymentSlipUrl != null) ...[
+          if (!widget.isHistory && fullPaymentSlipUrl != null) ...[
             SizedBox(height: 20.h),
             InkWell(
               onTap: () =>
@@ -243,7 +246,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                 Expanded(
                   child: Text(
                     'ยกเลิกได้ก่อน ${DateFormat('d MMMM yyyy, HH:mm', 'th').format(cancellationDeadline)} (คืนเงินเต็มจำนวน)',
-                    style: TextStyle(fontSize: 11.sp, color: Colors.amber[900]),
+                    style: styles(fontSize: 11.sp, color: Colors.amber[900]),
                   ),
                 ),
               ],
@@ -274,78 +277,86 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
     bool canCancel,
   ) {
     final buttons = <Widget>[];
-    buttons.add(
-      Container(
-        width: width * 0.8,
-        padding: EdgeInsets.only(bottom: 20.h),
-        child: Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(
-                  Icons.chat_bubble_outline,
-                  color: Colors.white,
-                  size: 18,
-                ),
-                label: Text(
-                  'แชท',
-                  style: TextStyle(
+    if (!widget.isHistory) {
+      buttons.add(
+        Container(
+          width: width * 0.8,
+          padding: EdgeInsets.only(bottom: 20.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Flexible(
+                child: ElevatedButton.icon(
+                  icon: const Icon(
+                    Icons.chat_bubble_outline,
                     color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
+                    size: 18,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
-                  minimumSize: Size(0, 50.h),
-                  padding: EdgeInsets.symmetric(vertical: 4.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(7.r),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChatPage(
-                        vendorId: d['hotelId'],
-                        buyerId: d['guestId'],
-                        proId: 'hotel_${widget.bookingId}',
-                        proName: d['hotelName'] ?? 'ที่พัก',
-                      ),
+                  label: Text(
+                    'แชท',
+                    style: styles(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
                     ),
-                  );
-                },
-              ),
-            ),
-            SizedBox(width: 50.w),
-            Expanded(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.phone, color: Colors.white, size: 18),
-                label: Text(
-                  'โทร',
-                  style: styles(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w600,
                   ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  minimumSize: Size(0, 50.h),
-                  padding: EdgeInsets.symmetric(vertical: 4.h),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(7.r),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo,
+                    minimumSize: Size(0, 32.h),
+                    padding: EdgeInsets.symmetric(
+                      vertical: 2.h,
+                      horizontal: 8.w,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
                   ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChatPage(
+                          vendorId: d['hotelId'],
+                          buyerId: d['guestId'],
+                          proId: 'hotel_${widget.bookingId}',
+                          proName: d['hotelName'] ?? 'ที่พัก',
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                onPressed: () => _callOwner(d['hotelId']),
               ),
-            ),
-          ],
+              SizedBox(width: 8.w),
+              Flexible(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.phone, color: Colors.white, size: 18),
+                  label: Text(
+                    'โทร',
+                    style: styles(
+                      color: Colors.white,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    minimumSize: Size(0, 32.h),
+                    padding: EdgeInsets.symmetric(
+                      vertical: 2.h,
+                      horizontal: 8.w,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                  onPressed: () => _callOwner(d['hotelId']),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     final cancelRequested = d['cancelRequested'] as bool? ?? false;
     if (cancelRequested && status != 'cancelled') {
@@ -405,30 +416,50 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
       final totalPrice = (d['totalPrice'] as num).toDouble();
       final depositAmount = (d['depositAmount'] as num).toDouble();
       final remaining = totalPrice - depositAmount;
-      buttons.add(
-        _actionButton(
-          'จ่ายส่วนที่เหลือ ฿${remaining.toStringAsFixed(0)}',
-          Icons.payment,
-          Colors.blue,
-          () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => HotelDepositPaymentPage(
-                  bookingId: widget.bookingId,
-                  hotelOwnerId: d['hotelId'],
-                  depositAmount: remaining,
+      final pendingCash = d['pendingCashPayment'] == true;
+      final hasSlip = (d['fullPaymentSlipUrl'] ?? '').toString().isNotEmpty;
+      if (pendingCash || hasSlip) {
+        buttons.add(
+          Container(
+            width: width * 0.8,
+            padding: EdgeInsets.all(12.w),
+            margin: EdgeInsets.only(bottom: 16.h),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              border: Border.all(color: Colors.amber.shade400),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.access_time, color: Colors.amber[800], size: 18.sp),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    '⏳ รอเจ้าของยืนยันรับเงิน',
+                    style: styles(
+                      fontSize: 13.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.amber[900],
+                    ),
+                  ),
                 ),
-              ),
-            ).then((_) {
-              FirebaseFirestore.instance
-                  .collection('hotel_bookings')
-                  .doc(widget.bookingId)
-                  .update({'fullyPaid': true});
-            });
-          },
-        ),
-      );
+              ],
+            ),
+          ),
+        );
+      } else {
+        buttons.add(
+          _actionButton(
+            'จ่ายส่วนที่เหลือ ฿${remaining.toStringAsFixed(0)}',
+            Icons.payment,
+            Colors.blue,
+            () => _showRemainingPaymentSheet(
+              remaining,
+              d['hotelId'] as String? ?? '',
+            ),
+          ),
+        );
+      }
     }
 
     if (status == 'completed') {
@@ -448,7 +479,7 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                   ),
                   label: Text(
                     reviewed ? 'รีวิวแล้ว ✓' : 'เขียนรีวิว',
-                    style: TextStyle(
+                    style: styles(
                       color: Colors.white,
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -484,6 +515,110 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
     }
 
     return Column(children: buttons);
+  }
+
+  Future<void> _showRemainingPaymentSheet(
+    double remaining,
+    String hotelOwnerId,
+  ) async {
+    final method = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: Text(
+                'เลือกวิธีจ่ายส่วนที่เหลือ ฿${remaining.toStringAsFixed(0)}',
+                style: styles(fontSize: 15.sp, fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.payments,
+                color: Colors.green[700],
+                size: 28.sp,
+              ),
+              title: Text(
+                'เงินสด',
+                style: styles(
+                  color: Colors.black54,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'จ่ายที่โรงแรม',
+                style: styles(
+                  color: Colors.black54,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'cash'),
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.qr_code,
+                color: Colors.blue[700],
+                size: 28.sp,
+              ),
+              title: Text(
+                'โอน / QR',
+                style: styles(
+                  color: Colors.black54,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: Text(
+                'สแกน QR และอัปโหลดสลิป',
+                style: styles(
+                  color: Colors.black54,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onTap: () => Navigator.pop(ctx, 'qr'),
+            ),
+            SizedBox(height: 16.h),
+          ],
+        ),
+      ),
+    );
+
+    if (method == null || !mounted) return;
+
+    if (method == 'cash') {
+      try {
+        await FirebaseFirestore.instance
+            .collection('hotel_bookings')
+            .doc(widget.bookingId)
+            .update({
+              'fullPaymentMethod': 'cash',
+              'pendingCashPayment': true,
+              'fullPaymentRequestedAt': FieldValue.serverTimestamp(),
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
+      } catch (_) {}
+    } else {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HotelDepositPaymentPage(
+            bookingId: widget.bookingId,
+            hotelOwnerId: hotelOwnerId,
+            depositAmount: remaining,
+            isFullPayment: true,
+          ),
+        ),
+      );
+    }
   }
 
   Widget _actionButton(
@@ -567,12 +702,19 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('ปิด'),
+            child: Text(
+              'ปิด',
+              style: styles(
+                color: Colors.black54,
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ส่งคำขอ', style: TextStyle(color: Colors.white)),
+            child: Text('ส่งคำขอ', style: styles(color: Colors.white)),
           ),
         ],
       ),
@@ -617,7 +759,18 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                 ),
               ),
             ),
-            Flexible(child: Image.network(url, fit: BoxFit.contain)),
+            Flexible(
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.contain,
+                memCacheWidth: 1200,
+                placeholder: (_, __) => Container(color: Colors.grey.shade200),
+                errorWidget: (_, __, ___) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                ),
+              ),
+            ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: const Text('ปิด', style: TextStyle(color: Colors.black54)),
@@ -667,9 +820,9 @@ class _HotelBookingDetailPageState extends State<HotelBookingDetailPage> {
                       rows[i].value,
                       textAlign: TextAlign.right,
                       style: styles(
-                        fontSize: 14.sp,
+                        fontSize: 13.sp,
                         fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: Colors.grey[700],
                       ),
                     ),
                   ),

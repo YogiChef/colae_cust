@@ -13,6 +13,7 @@
   final List<String> imageUrls;
   int quantity;
   final int pqty;
+  final bool trackStock;
   double price;
   final double shippingCharge;
   final String vendorId;
@@ -36,6 +37,7 @@
     required this.imageUrls,
     this.quantity = 1,
     required this.pqty,
+    this.trackStock = true,
     required this.price,
     required this.shippingCharge,
     required this.vendorId,
@@ -61,6 +63,7 @@
       'imageUrls': imageUrls,
       'quantity': quantity,
       'pqty': pqty,
+      'trackStock': trackStock,
       'price': price,
       'shippingCharge': shippingCharge,
       'vendorId': vendorId,
@@ -87,6 +90,7 @@
       imageUrls: List<String>.from(json['imageUrls'] ?? []),
       quantity: json['quantity'] ?? 1,
       pqty: json['pqty'] ?? 0,
+      trackStock: json['trackStock'] as bool? ?? true,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
       shippingCharge: (json['shippingCharge'] as num?)?.toDouble() ?? 0.0,
       vendorId: json['vendorId'] ?? '',

@@ -124,6 +124,8 @@ class _ProductDetailState extends State<ProductDetail> {
           .get();
       if (!snapshot.exists) return false;
       final data = snapshot.data() as Map;
+      final bool trackStock = data['trackStock'] as bool? ?? true;
+      if (!trackStock) return true;
       int currentQty = (data['pqty'] as num?)?.toInt() ?? 0;
       return currentQty >= quantity;
     } catch (e) {
@@ -222,6 +224,7 @@ class _ProductDetailState extends State<ProductDetail> {
     final double basePrice = (productMap!['price'] as num?)?.toDouble() ?? 0.0;
     final String description = productMap!['description'] ?? '';
     final int pqty = (productMap!['pqty'] as num?)?.toInt() ?? 0;
+    final bool trackStock = productMap!['trackStock'] as bool? ?? true;
     final double shippingCharge =
         (productMap!['shippingCharge'] as num?)?.toDouble() ?? 0.0;
     final String email = productMap!['email'] ?? '';
@@ -382,48 +385,49 @@ class _ProductDetailState extends State<ProductDetail> {
                         textAlign: TextAlign.center,
                         style: styles(fontSize: 14.sp, color: Colors.grey),
                       ),
-                      Padding(
-                        padding: EdgeInsets.only(
-                          left: 20.w,
-                          top: 12.h,
-                          right: 20.w,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Quantity',
-                              textAlign: TextAlign.start,
-                              style: styles(
-                                color: pqty <= 10
-                                    ? Colors.red
-                                    : Colors.blueGrey,
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Spacer(),
-                            Container(
-                              padding: EdgeInsets.all(8.h),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3),
-                                border: Border.all(
-                                  width: 1,
-                                  color: pqty <= 10 ? Colors.red : Colors.blue,
-                                ),
-                              ),
-                              child: Text(
-                                '$pqty',
+                      if (trackStock)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            left: 20.w,
+                            top: 12.h,
+                            right: 20.w,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Quantity',
+                                textAlign: TextAlign.start,
                                 style: styles(
-                                  color: pqty <= 10 ? Colors.red : Colors.grey,
+                                  color: pqty <= 10
+                                      ? Colors.red
+                                      : Colors.blueGrey,
+                                  fontSize: 16.sp,
                                   fontWeight: FontWeight.w600,
-                                  fontSize: 24.sp,
                                 ),
                               ),
-                            ),
-                          ],
+                              Spacer(),
+                              Container(
+                                padding: EdgeInsets.all(8.h),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  border: Border.all(
+                                    width: 1,
+                                    color: pqty <= 10 ? Colors.red : Colors.blue,
+                                  ),
+                                ),
+                                child: Text(
+                                  '$pqty',
+                                  style: styles(
+                                    color: pqty <= 10 ? Colors.red : Colors.grey,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 24.sp,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       SizedBox(height: 20.h),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -464,7 +468,7 @@ class _ProductDetailState extends State<ProductDetail> {
                               style: styles(
                                 fontSize: 18.sp,
                                 fontWeight: FontWeight.bold,
-                                color: pqty <= 10 ? Colors.red : mainColor,
+                                color: (trackStock && pqty <= 10) ? Colors.red : mainColor,
                               ),
                             ),
                           ),
@@ -475,7 +479,7 @@ class _ProductDetailState extends State<ProductDetail> {
                             child: IconButton(
                               padding: EdgeInsets.zero,
                               onPressed: () {
-                                if (quantity < pqty) {
+                                if (!trackStock || quantity < pqty) {
                                   setState(() {
                                     quantity++;
                                   });
@@ -851,6 +855,7 @@ class _ProductDetailState extends State<ProductDetail> {
     final String proId = productMap!['proId'] ?? '';
     final double basePrice = (productMap!['price'] as num?)?.toDouble() ?? 0.0;
     final int pqty = (productMap!['pqty'] as num?)?.toInt() ?? 0;
+    final bool trackStock = productMap!['trackStock'] as bool? ?? true;
     final double shippingCharge =
         (productMap!['shippingCharge'] as num?)?.toDouble() ?? 0.0;
     final String email = productMap!['email'] ?? '';
@@ -872,7 +877,7 @@ class _ProductDetailState extends State<ProductDetail> {
         : [];
 
     try {
-      if (quantity > pqty) {
+      if (trackStock && quantity > pqty) {
         Fluttertoast.showToast(
           msg: 'สต็อกไม่พอ: เหลือ $pqty ชิ้น',
           backgroundColor: Colors.red,

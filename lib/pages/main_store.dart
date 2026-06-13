@@ -262,7 +262,7 @@ class _MainStorePageState extends State<MainStorePage> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 10.h),
                           height: 160.w,
-                          width: 170.w,
+                          width: 160.w,
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4.r),
                             child: CachedNetworkImage(

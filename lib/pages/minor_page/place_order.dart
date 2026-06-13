@@ -118,9 +118,13 @@ class _PlaceOrderPageState extends State<PlaceOrderPage> {
           final ref = firestore.collection('products').doc(item.proId);
           final snap = await transaction.get(ref);
           if (snap.exists) {
-            transaction.update(ref, {
-              'pqty': (snap['pqty'] as num) - item.quantity,
-            });
+            final productData = snap.data();
+            final bool trackStock = productData?['trackStock'] as bool? ?? true;
+            if (trackStock) {
+              transaction.update(ref, {
+                'pqty': (snap['pqty'] as num) - item.quantity,
+              });
+            }
           }
         });
       }).toList();

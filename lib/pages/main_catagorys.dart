@@ -286,7 +286,7 @@ class _CategoryHomeState extends State<CategoryHome> {
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 10.w),
                         height: 160.h,
-                        width: 170.w,
+                        width: 160.w,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4.r),
                           child: CachedNetworkImage(

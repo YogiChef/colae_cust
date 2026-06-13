@@ -1,6 +1,7 @@
 // ordered_tab.dart - Full code for Ordered (Completed Orders) - Adapted from Preparing structure for historical display
 // ignore_for_file: avoid_print
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/pages/minor_page/customer_rider_chat_page.dart';
 import 'package:flutter/material.dart';
@@ -448,7 +449,7 @@ class _OrderedState extends State<Ordered> {
               CircleAvatar(
                 radius: 20.r,
                 backgroundImage: storeImage.isNotEmpty
-                    ? NetworkImage(storeImage)
+                    ? CachedNetworkImageProvider(storeImage)
                     : null,
                 child: storeImage.isEmpty
                     ? Icon(Icons.store, size: 20.r)

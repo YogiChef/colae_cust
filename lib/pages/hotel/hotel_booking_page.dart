@@ -465,7 +465,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
         children: [
           Text(
             label,
-            style: TextStyle(
+            style: styles(
               fontSize: 13.sp,
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
               color: isHighlight ? mainColor : Colors.grey[800],
@@ -473,7 +473,7 @@ class _HotelBookingPageState extends State<HotelBookingPage> {
           ),
           Text(
             '฿${amount.toStringAsFixed(0)}',
-            style: TextStyle(
+            style: styles(
               fontSize: isBold ? 16.sp : 14.sp,
               fontWeight: isBold || isHighlight
                   ? FontWeight.bold

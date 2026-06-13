@@ -87,7 +87,7 @@ class _HotelMainPageState extends State<HotelMainPage> {
             constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
             child: Text(
               _unreadCount > 9 ? '9+' : '$_unreadCount',
-              style: const TextStyle(
+              style: styles(
                 color: Colors.white,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,

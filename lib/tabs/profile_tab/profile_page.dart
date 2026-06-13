@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously, avoid_print
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:colae_cut/providers/cart_provider.dart';
 import 'package:colae_cut/providers/active_order_provider.dart';
@@ -239,7 +240,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                   bottomRight: Radius.circular(20.r),
                                 ),
                                 image: DecorationImage(
-                                  image: NetworkImage(data['custcoverImage']),
+                                  image: CachedNetworkImageProvider(data['custcoverImage']),
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -250,7 +251,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                     children: [
                                       CircleAvatar(
                                         radius: 50.dg,
-                                        backgroundImage: NetworkImage(
+                                        backgroundImage: CachedNetworkImageProvider(
                                           data['profileImage'],
                                         ),
                                       ),

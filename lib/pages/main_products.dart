@@ -331,10 +331,12 @@ class _MainProductPageState extends State<MainProductPage> {
                         final String imageUrl = imageList.isNotEmpty
                             ? imageList[0].toString()
                             : '';
-                        final bool isOutOfStock = productData['pqty'] <= 0;
+                        final bool trackStock = (productData.data() as Map<String, dynamic>)['trackStock'] as bool? ?? true;
+                        final bool isOutOfStock = trackStock && (productData['pqty'] <= 0);
                         final bool lowStock =
-                            productData['pqty'] > 0 &&
-                            productData['pqty'] <= 10;
+                            trackStock &&
+                            (productData['pqty'] > 0) &&
+                            (productData['pqty'] <= 10);
 
                         return GestureDetector(
                           onTap: isOutOfStock

@@ -108,8 +108,9 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
         imageUrls.add(await ref.getDownloadURL());
       }
 
-      final reviewRef =
-          FirebaseFirestore.instance.collection('hotel_reviews').doc();
+      final reviewRef = FirebaseFirestore.instance
+          .collection('hotel_reviews')
+          .doc();
       await reviewRef.set({
         'bookingId': widget.bookingId,
         'hotelId': widget.hotelId,
@@ -157,10 +158,7 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
     await FirebaseFirestore.instance
         .collection('hotels')
         .doc(widget.hotelId)
-        .update({
-      'rating': avg,
-      'totalReviews': snap.docs.length,
-    });
+        .update({'rating': avg, 'totalReviews': snap.docs.length});
   }
 
   @override
@@ -175,8 +173,10 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
     if (_alreadyReviewed) {
       return Scaffold(
         appBar: AppBar(
-          title:
-              Text('รีวิว', style: styles(color: Colors.white, fontSize: 18.sp)),
+          title: Text(
+            'รีวิว',
+            style: styles(color: Colors.white, fontSize: 18.sp),
+          ),
           backgroundColor: mainColor,
           foregroundColor: Colors.white,
         ),
@@ -186,13 +186,15 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
             children: [
               Icon(Icons.check_circle, size: 80.sp, color: Colors.green),
               SizedBox(height: 16.h),
-              Text('คุณได้รีวิวแล้ว',
-                  style: styles(
-                      fontSize: 16.sp, fontWeight: FontWeight.bold)),
+              Text(
+                'คุณได้รีวิวแล้ว',
+                style: styles(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              ),
               SizedBox(height: 8.h),
-              Text('รีวิวสามารถเขียนได้ครั้งเดียวเท่านั้น',
-                  style: styles(
-                      fontSize: 13.sp, color: Colors.grey[700])),
+              Text(
+                'รีวิวสามารถเขียนได้ครั้งเดียวเท่านั้น',
+                style: styles(fontSize: 13.sp, color: Colors.grey[700]),
+              ),
             ],
           ),
         ),
@@ -201,8 +203,14 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('เขียนรีวิว',
-            style: styles(color: Colors.white, fontSize: 18.sp)),
+        title: Text(
+          'เขียนรีวิว',
+          style: styles(
+            color: Colors.white,
+            fontSize: 20.sp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         backgroundColor: mainColor,
         foregroundColor: Colors.white,
       ),
@@ -211,20 +219,34 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.hotelName,
-                style:
-                    styles(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+            SizedBox(height: 20.h),
+            Text(
+              widget.hotelName,
+              style: styles(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple[900],
+              ),
+            ),
             SizedBox(height: 16.h),
 
             _sectionTitle('ให้คะแนน (1-5 ดาว)'),
-            _ratingRow('ความสะอาด', _cleanliness,
-                (v) => setState(() => _cleanliness = v)),
             _ratingRow(
-                'การบริการ', _service, (v) => setState(() => _service = v)),
+              'ความสะอาด',
+              _cleanliness,
+              (v) => setState(() => _cleanliness = v),
+            ),
             _ratingRow(
-                'ความคุ้มค่า', _value, (v) => setState(() => _value = v)),
+              'การบริการ',
+              _service,
+              (v) => setState(() => _service = v),
+            ),
             _ratingRow(
-                'ทำเล', _location, (v) => setState(() => _location = v)),
+              'ความคุ้มค่า',
+              _value,
+              (v) => setState(() => _value = v),
+            ),
+            _ratingRow('ทำเล', _location, (v) => setState(() => _location = v)),
 
             if (_averageRating > 0) ...[
               SizedBox(height: 12.h),
@@ -241,10 +263,11 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
                     Text('คะแนนเฉลี่ย: ', style: styles(fontSize: 13.sp)),
                     Text(
                       _averageRating.toStringAsFixed(1),
-                      style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber[800]),
+                      style: styles(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber[800],
+                      ),
                     ),
                   ],
                 ),
@@ -257,9 +280,14 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
               controller: _commentController,
               maxLines: 5,
               maxLength: 500,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'เล่าประสบการณ์การพักของคุณ...',
-                border: OutlineInputBorder(),
+                hintStyle: styles(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.grey.shade400,
+                ),
+                border: const OutlineInputBorder(),
               ),
             ),
 
@@ -274,8 +302,12 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8.r),
-                        child: Image.file(entry.value,
-                            width: 80.w, height: 80.w, fit: BoxFit.cover),
+                        child: Image.file(
+                          entry.value,
+                          width: 80.w,
+                          height: 80.w,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       Positioned(
                         top: 4,
@@ -286,9 +318,14 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: const BoxDecoration(
-                                color: Colors.red, shape: BoxShape.circle),
-                            child: const Icon(Icons.close,
-                                color: Colors.white, size: 12),
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 12,
+                            ),
                           ),
                         ),
                       ),
@@ -305,8 +342,11 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8.r),
                       ),
-                      child: Icon(Icons.add_a_photo,
-                          color: Colors.grey, size: 28.sp),
+                      child: Icon(
+                        Icons.add_a_photo,
+                        color: Colors.grey,
+                        size: 28.sp,
+                      ),
                     ),
                   ),
               ],
@@ -322,14 +362,16 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline,
-                      color: Colors.orange[800], size: 18.sp),
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.orange[800],
+                    size: 18.sp,
+                  ),
                   SizedBox(width: 8.w),
                   Expanded(
                     child: Text(
                       'รีวิวเขียนได้ครั้งเดียว ไม่สามารถแก้ไขได้',
-                      style: TextStyle(
-                          fontSize: 11.sp, color: Colors.orange[900]),
+                      style: styles(fontSize: 11.sp, color: Colors.orange[900]),
                     ),
                   ),
                 ],
@@ -344,13 +386,13 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
                 icon: const Icon(Icons.send, color: Colors.white),
                 label: Text(
                   _saving ? 'กำลังส่ง...' : 'ส่งรีวิว',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600),
+                  style: styles(
+                    color: Colors.white,
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                style:
-                    ElevatedButton.styleFrom(backgroundColor: mainColor),
+                style: ElevatedButton.styleFrom(backgroundColor: mainColor),
                 onPressed: _saving ? null : _submit,
               ),
             ),
@@ -364,21 +406,32 @@ class _HotelReviewPageState extends State<HotelReviewPage> {
   Widget _sectionTitle(String text) {
     return Padding(
       padding: EdgeInsets.only(bottom: 8.h, top: 4.h),
-      child: Text(text,
-          style: styles(fontSize: 15.sp, fontWeight: FontWeight.bold)),
+      child: Text(
+        text,
+        style: styles(
+          fontSize: 15.sp,
+          fontWeight: FontWeight.bold,
+          color: Colors.purple[900],
+        ),
+      ),
     );
   }
 
-  Widget _ratingRow(
-      String label, int value, ValueChanged<int> onChanged) {
+  Widget _ratingRow(String label, int value, ValueChanged<int> onChanged) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.h),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          SizedBox(
-            width: 100.w,
-            child: Text(label, style: styles(fontSize: 13.sp)),
+          Text(
+            label,
+            style: styles(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w500,
+              color: Colors.purple[900],
+            ),
           ),
+          Spacer(),
           ...List.generate(5, (i) {
             final star = i + 1;
             return GestureDetector(
